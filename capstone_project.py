@@ -173,7 +173,7 @@ def extract_related_leis(relationship_data, input_lei):
     return list(set(related_leis))
 
 # Application title
-st.set_page_config(page_title="🔍 LEI Lookup Service", layout="wide")
+st.set_page_config(page_title="LEI Lookup Service", page_icon="🔍", layout="wide")
 st.title("🔍 LEI Lookup Service")
 st.write("This application allows you to search for company information using its **LEI (Legal Entity Identifier)**.")
 
