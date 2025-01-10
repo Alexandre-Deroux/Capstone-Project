@@ -178,7 +178,7 @@ st.title("🔍 LEI Lookup Service")
 st.write("This application allows you to search for company information using its **LEI (Legal Entity Identifier)**.")
 
 # User input
-input_lei = st.text_input("Enter the LEI to look up:", "529900W18LQJJN6SJ336")
+input_lei = st.text_input("Enter the LEI to look up:", "R0MUWSFPU8MPRO8K5P83")
 
 # Add a button to trigger the search
 if st.button("🚀 Fetch Company Information"):
