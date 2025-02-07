@@ -1,226 +1,248 @@
 import requests
 import pandas as pd
 import streamlit as st
+import pycountry
+from difflib import get_close_matches
 
-def get_lei_information(lei):
+# Configuration
+API_KEY = "wg8GiGuUTwNfRN90Qmwq"
+
+# Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
+COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
+
+def get_country_code(country_name):
     """
-    Retrieves company information based on an LEI identifier via the GLEIF API.
-
-    :param lei: (str) The LEI identifier of the company
-    :return: (dict) Company data or an error message
+    Converts a country name to its ISO 3166-1 alpha-2 code.
+    If the exact country is not found, it searches for the closest match based on letter similarity.
     """
-    # API URL with the provided LEI
-    url = f"https://api.gleif.org/api/v1/lei-records/{lei}"
+    if not country_name:
+        return None
 
-    # Headers to specify the JSON API format
-    headers = {
-        "Accept": "application/vnd.api+json"
+    # Direct lookup
+    country_code = COUNTRIES.get(country_name)
+    if country_code:
+        return country_code
+
+    # Approximate matching
+    closest_matches = get_close_matches(country_name, COUNTRIES.keys(), n=1, cutoff=0.6)
+    if closest_matches:
+        matched_country = closest_matches[0]
+        st.warning(f'⚠️ "{country_name}" not found. Using closest match: "{matched_country}".')
+        return COUNTRIES[matched_country]
+
+    st.error(f'❌ Country "{country_name}" not found.')
+    return None
+
+def search_companies(query, country=None, address=None):
+    """
+    Searches for companies using the OpenCorporates API.
+    """
+    country_code = get_country_code(country) if country else None
+
+    params = {
+        "q": query,
+        "country_code": country_code,
+        "registered_address": address,
+        "order": 'score',
+        "api_token": API_KEY
+    }
+
+    params = {key: value for key, value in params.items() if value is not None}
+
+    try:
+        response = requests.get("https://api.opencorporates.com/v0.4/companies/search", params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"❌ Error during request: {e}")
+        return None
+
+def search_company(company_url):
+    """
+    Searches for company using the OpenCorporates API.
+    """
+    params = {
+        "api_token": API_KEY
     }
 
     try:
-        # Make a GET request to the API
-        response = requests.get(url, headers=headers)
-
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Return the JSON data from the response
-            return response.json()
-        else:
-            # If the status code is not 200, return an error
-            return {
-                "error": f"Error retrieving data (status code {response.status_code}).",
-                "details": response.text
-            }
+        response = requests.get(f"https://api.opencorporates.com/v0.4/companies/{company_url.split("/")[-2]}/{company_url.split("/")[-1]}", params=params)
+        response.raise_for_status()
+        return response.json()
     except requests.exceptions.RequestException as e:
-        # Handle errors related to the request (e.g., network issues)
-        return {
-            "error": "An error occurred during the request.",
-            "details": str(e)
+        print(f"❌ Error during request: {e}")
+        return None
+
+def companies_to_dataframe(api_results):
+    """
+    Converts OpenCorporates API results into a pandas DataFrame.
+    """
+    if not api_results or "results" not in api_results or "companies" not in api_results["results"]:
+        st.warning("⚠️ No results found.")
+        return pd.DataFrame()
+
+    companies = {}
+    for company_data in api_results["results"]["companies"]:
+        company = company_data["company"]
+        company_name = company.get("name", "Unknown Company")
+
+        # Store company details in a dictionary format
+        companies[company_name] = {
+            "Registration Number": company.get("company_number"),
+            "Jurisdiction": company.get("jurisdiction_code").upper(),
+            "Incorporation Date": company.get("incorporation_date"),
+            "Dissolution Date": company.get("dissolution_date"),
+            "Company Type": company.get("company_type"),
+            "Status": company.get("current_status"),
+            "Address": company.get("registered_address_in_full"),
+            "Previous Names": ", ".join(
+                [
+                    f"{pn.get('company_name', 'Unknown Name')} (from {pn.get('start_date', 'Unknown')} to {pn.get('end_date', 'Unknown')})"
+                    for pn in company.get("previous_names", [])
+                ]
+            ),
+            "Industry Codes": ", ".join(
+                [
+                    f"{ic['industry_code'].get('description', 'Unknown')} ({ic['industry_code'].get('code', 'N/A')})"
+                    for ic in company.get("industry_codes", [])
+                    if "industry_code" in ic
+                ]
+            ),
+            "OpenCorporates URL": company.get("opencorporates_url")
         }
 
-def json_to_dataframe(data):
-    """
-    Transforms a JSON response from the GLEIF API into a Pandas DataFrame
-    with all available information organised into separate columns.
+    # Create DataFrame with company names as columns
+    df = pd.DataFrame(companies)
 
-    :param data: (dict) JSON data from the GLEIF API
-    :return: (pd.DataFrame) DataFrame with the extracted information
-    """
-    # Extracting the main parts of the JSON response
-    attributes = data["data"]["attributes"]
-    entity = attributes["entity"]
-    registration = attributes["registration"]
+    # Drop rows where ALL values are None or empty strings
+    df = df.dropna(how="all")
 
-    # Flattening the data into a dictionary
-    flat_data = {
-        # General LEI Information
-        "LEI": attributes["lei"],
-        "Legal Name": entity["legalName"]["name"],
-        "Legal Name Language": entity["legalName"]["language"],
-        "Transliterated Legal Name": entity["transliteratedOtherNames"][0]["name"] if entity["transliteratedOtherNames"] else None,
-        "Transliterated Legal Name Language": entity["transliteratedOtherNames"][0]["language"] if entity["transliteratedOtherNames"] else None,
-        "Transliterated Legal Name Type": entity["transliteratedOtherNames"][0]["type"] if entity["transliteratedOtherNames"] else None,
-        "Legal Address": ", ".join(entity["legalAddress"]["addressLines"]),
-        "Legal Address Language": entity["legalAddress"]["language"],
-        "Legal Address City": entity["legalAddress"]["city"],
-        "Legal Address Region": entity["legalAddress"]["region"],
-        "Legal Address Country": entity["legalAddress"]["country"],
-        "Legal Address Postal Code": entity["legalAddress"]["postalCode"],
-        "Headquarters Address": ", ".join(entity["headquartersAddress"]["addressLines"]),
-        "Headquarters Address Language": entity["headquartersAddress"]["language"],
-        "Headquarters Address City": entity["headquartersAddress"]["city"],
-        "Headquarters Address Region": entity["headquartersAddress"]["region"],
-        "Headquarters Address Country": entity["headquartersAddress"]["country"],
-        "Headquarters Address Postal Code": entity["headquartersAddress"]["postalCode"],
-        "Jurisdiction": entity["jurisdiction"],
-        "Category": entity["category"],
-        "Legal Form ID": entity["legalForm"]["id"],
-        "Registered At ID": entity["registeredAt"]["id"],
-        "Registered As": entity["registeredAs"],
-        "Entity Status": entity["status"],
-        "Creation Date": entity["creationDate"],
-        "Expiration Date": entity["expiration"]["date"],
-        "Expiration Reason": entity["expiration"]["reason"],
-        "Associated Entity LEI": entity["associatedEntity"]["lei"],
-        "Associated Entity Name": entity["associatedEntity"]["name"],
-        "BIC Codes": ", ".join(attributes["bic"]) if attributes["bic"] else None,
-        "MIC": attributes["mic"],
-        "OCID": attributes["ocid"],
-        "SP Global IDs": ", ".join(attributes["spglobal"]) if attributes["spglobal"] else None,
-        "Conformity Flag": attributes["conformityFlag"],
-        
-        # Registration Information
-        "Initial Registration Date": registration["initialRegistrationDate"],
-        "Last Update Date": registration["lastUpdateDate"],
-        "Next Renewal Date": registration["nextRenewalDate"],
-        "Registration Status": registration["status"],
-        "Managing LOU": registration["managingLou"],
-        "Corroboration Level": registration["corroborationLevel"],
-        "Validated At ID": registration["validatedAt"]["id"],
-        "Validated As": registration["validatedAs"],
+    # Transpose to have company names as column headers
+    df = df.T
+
+    return df
+
+def company_to_dataframe(api_results):
+    """
+    Converts OpenCorporates API results into a detailed pandas DataFrame.
+    """
+    if not api_results or "results" not in api_results or "company" not in api_results["results"]:
+        st.warning("⚠️ No results found.")
+        return pd.DataFrame()
+
+    company = api_results["results"]["company"]
+    company_name = company.get("name", "Unknown Company")
+
+    def safe_get(dictionary, key, default="Not Available"):
+        """Safely retrieves a key from a dictionary, returning a default value if missing."""
+        return dictionary.get(key, default)
+
+    def format_list(data_list, key_name):
+        """Formats a list of dictionaries into a readable string."""
+        if isinstance(data_list, list):
+            return ", ".join(
+                [f"{item.get(key_name, 'Unknown')}" for item in data_list if isinstance(item, dict)]
+            )
+        return "Not Available"
+
+    # Store company details in a dictionary format
+    company_dict = {
+        "Registration Number": safe_get(company, "company_number"),
+        "Jurisdiction": safe_get(company, "jurisdiction_code", "").upper(),
+        "Incorporation Date": safe_get(company, "incorporation_date"),
+        "Dissolution Date": safe_get(company, "dissolution_date"),
+        "Company Type": safe_get(company, "company_type"),
+        "Status": safe_get(company, "current_status"),
+        "Registered Address": safe_get(company, "registered_address_in_full"),
+        "Registry URL": safe_get(company, "registry_url"),
+        "OpenCorporates URL": safe_get(company, "opencorporates_url"),
+        "Previous Names": format_list(company.get("previous_names", []), "company_name"),
+        "Industry Codes": format_list(
+            [ic["industry_code"] for ic in company.get("industry_codes", []) if "industry_code" in ic],
+            "description"
+        ),
+        "Officers": format_list(
+            [officer["officer"] for officer in company.get("officers", []) if "officer" in officer],
+            "name"
+        ),
+        "Recent Filings": format_list(
+            [f["filing"] for f in company.get("filings", []) if "filing" in f],
+            "title"
+        ),
+        "Corporate Groupings": format_list(
+            [grouping["corporate_grouping"] for grouping in company.get("corporate_groupings", []) if "corporate_grouping" in grouping],
+            "name"
+        ),
     }
 
-    # Converting the flattened dictionary into a DataFrame
-    df = pd.DataFrame([flat_data])
+    # Create DataFrame with company names as columns
+    df = pd.DataFrame([company_dict], index=[company_name])
 
-    return df.set_index("Legal Name")
+    # Drop rows where ALL values are None or empty strings
+    df = df.replace({"": None}).dropna(axis=1, how="all")
 
-def fetch_relationship_data(base_data):
-    """
-    Fetches data for all relationships in the 'relationships' section
-    by performing API requests to the provided links.
+    # Transpose to have company names as column headers
+    df = df.T
 
-    :param base_data: (dict) JSON data from the original API response.
-    :return: (pd.DataFrame) DataFrame containing data for all relationships.
-    """
-    relationships = base_data["data"].get("relationships", {})
-    results = []
-
-    for rel_name, rel_data in relationships.items():
-        # Extract the related link
-        related_link = rel_data.get("links", {}).get("related")
-        if related_link:
-            try:
-                # Perform the API request
-                response = requests.get(related_link)
-                response.raise_for_status()  # Raise an exception for HTTP errors
-                fetched_data = response.json()  # Parse the JSON response
-
-                # Append the result to the list as a dictionary
-                results.append({
-                    "Relationship Name": rel_name,
-                    "Link": related_link,
-                    "Data": fetched_data
-                })
-
-            except requests.exceptions.RequestException as e:
-                # Log any errors that occur during the request
-                results.append({
-                    "Relationship Name": rel_name,
-                    "Link": related_link,
-                    "Error": str(e)
-                })
-
-    # Convert the results into a DataFrame for organisation
-    return pd.DataFrame(results)
-
-def extract_related_leis(relationship_data, input_lei):
-    """
-    Extracts all unique LEIs from relationship data that are different from the input LEI.
-
-    :param relationship_data: (pd.Series) The "Data" column from the relationships DataFrame.
-    :param input_lei: (str) The LEI given as input (to exclude from results).
-    :return: (pd.DataFrame) DataFrame containing unique LEIs and their relationship details.
-    """
-    related_leis = []
-
-    # Loop through each relationship in the data
-    for relationship in relationship_data:
-        # Handle the "data" field, which can be a list or a dictionary
-        data_field = relationship.get("data")
-
-        if isinstance(data_field, list):  # If "data" is a list
-            for entry in data_field:
-                lei = entry.get("attributes", {}).get("lei")
-                if lei and lei != input_lei:
-                    related_leis.append(lei)
-
-        elif isinstance(data_field, dict):  # If "data" is a single object
-            lei = data_field.get("attributes", {}).get("lei")
-            if lei and lei != input_lei:
-                related_leis.append(lei)
-
-    return list(set(related_leis))
+    return df
 
 # Application title
-st.set_page_config(page_title="LEI Lookup Service", page_icon="🔍", layout="wide")
-st.title("🔍 LEI Lookup Service")
-st.write("This application allows you to search for company information using its **LEI (Legal Entity Identifier)**.")
+st.set_page_config(page_title="Anti-Money Laundering", page_icon="🔍", layout="wide")
+st.title("🔍 Anti-Money Laundering")
+st.write("This application enables you to combat the risk of money laundering.")
 
-# User input
-input_lei = st.text_input("Enter the LEI to look up:", "R0MUWSFPU8MPRO8K5P83")
+# User inputs
+query = st.text_input("🏢 Enter the Company Name:", "BNP Paribas")
+country = st.selectbox("🌍 Select the Country (Optional):", ["None"] + sorted(COUNTRIES.keys()), index=0)
+country = None if country == "None" else country
+address = st.text_input("📍 Enter the Address (Optional):", "")
+address = None if address == "" else address
 
-# Add a button to trigger the search
-if st.button("🚀 Fetch Company Information"):
+# Search companies
+if st.button("🔍 Search Companies"):
     with st.spinner("Retrieving data..."):
-        # Placeholder function to fetch LEI information
-        data = get_lei_information(input_lei)
-
-        if "error" in data:
-            st.error(f"❌ Error: {data['error']}")
-            st.write(f"🔍 Details: {data['details']}")
+        companies_results = search_companies(query=query, country=country, address=address)
+        if companies_results:
+            company_df = companies_to_dataframe(companies_results)
+            st.session_state["company_df"] = company_df
+            st.session_state["company_index"] = 0
         else:
-            # Display company information
-            st.subheader("📋 Company Information")
-            company_df = json_to_dataframe(data)
-            st.dataframe(company_df.T.dropna(how="all").style.format(na_rep="N/A"), use_container_width=True)
+            st.session_state["company_df"] = None
+            st.session_state["company_index"] = None
 
-            # Fetch relationships
-            st.subheader("🔗 Company Relationships")
-            relationship_df = fetch_relationship_data(data)
+# Display companies
+if "company_df" in st.session_state and st.session_state["company_df"] is not None:
+    company_df = st.session_state["company_df"]
+    company_dataframe = company_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
+    if not company_df.empty:
+        st.subheader("📋 Companies Information")
+        st.dataframe(company_dataframe, use_container_width=True)
+        if "company_index" not in st.session_state:
+            st.session_state["company_index"] = 0
+        if "company_url" not in st.session_state:
+            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[0]
+        company_options = [f"{i + 1} - {name}" for i, name in enumerate(company_df.index)]
+        selected_company = st.selectbox("🏢 Select the Company:", company_options, index=st.session_state["company_index"])
+        new_index = int(selected_company.split(" - ", 1)[0]) - 1
+        if new_index != st.session_state["company_index"]:
+            st.session_state["company_index"] = new_index
+            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
 
-            if not relationship_df.empty:
-                # Extract related LEIs
-                relationship_data = relationship_df["Data"]
-                related_leis = extract_related_leis(relationship_data, input_lei)
-                
-                relationship_df_display = pd.DataFrame()
-                for related_lei in related_leis:
-                    data = get_lei_information(related_lei)
-                    if "error" in data:
-                        st.error(f"❌ Error: {data['error']}")
-                        st.write(f"🔍 Details: {data['details']}")
+        # Display company
+        if st.button("🚀 Fetch Company Information") and "company_url" in st.session_state:
+            with st.spinner("Retrieving data..."):
+                company_results = search_company(st.session_state["company_url"])
+                if company_results:
+                    df = company_to_dataframe(company_results)
+                    if not df.empty:
+                        st.subheader("📋 Company Information")
+                        st.dataframe(df, use_container_width=True)
                     else:
-                        relationship_df_display = pd.concat(
-                            [relationship_df_display, json_to_dataframe(data)], ignore_index=False
-                        )
-                        
-                if not relationship_df_display.empty:
-                    st.dataframe(relationship_df_display.T.dropna(how="all").style.format(na_rep="N/A"), use_container_width=True)
+                        st.info("ℹ️ No results found for this search.")
                 else:
-                    st.info("ℹ️ No relationships found.")
-            else:
-                st.info("ℹ️ No relationships found.")
+                    st.error("❌ No data retrieved from the API.")
+    else:
+        st.info("ℹ️ No results found for this search.")
 
 # Authors
 st.markdown("""

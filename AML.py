@@ -1,11 +1,10 @@
 import requests
 from datetime import datetime, timedelta
 from newspaper import Article
-#from textblob import TextBlob
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
 
-#nltk.download('vader_lexicon') 
+# nltk.download('vader_lexicon') 
 sia = SentimentIntensityAnalyzer()
 
 # Liste des domaines à exclure (Yahoo bloque l'accès)
@@ -72,30 +71,3 @@ if filtered_articles:
     print(f"\n🎯 **Global sentiment for '{query}': {global_sentiment:.2f}**")
 else:
     print("\n⚠️ No relevant articles found.")
-
-
-"""
-article_sentiments = []
-for article in articles[:]: 
-    try:
-        news_article = Article(article['url'])
-        news_article.download()
-        news_article.parse()
-        content = news_article.text
-        
-        sentiment = get_sentiment(content)
-        article_sentiments.append(sentiment)
-
-        print(f"✅ {article['title']}")
-        print(f"🔗 {article['url']}")
-        print(f"📊 Sentiment: {sentiment:.2f}\n")
-
-    except Exception as e:
-        print(f"❌ Impossible d'extraire {article['url']} ({str(e)})")
-if article_sentiments:
-    global_sentiment = sum(article_sentiments) / len(article_sentiments)
-    print(f"🎯 Sentiment global pour '{query}': {global_sentiment:.2f}")
-else:
-    print("Aucun article valide trouvé pour analyser le sentiment.")
-
-"""
