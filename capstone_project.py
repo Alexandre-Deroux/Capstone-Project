@@ -111,13 +111,9 @@ def companies_to_dataframe(api_results):
             "OpenCorporates URL": company.get("opencorporates_url")
         }
 
-    # Create DataFrame with company names as columns
+    # Create DataFrame
     df = pd.DataFrame(companies)
-
-    # Drop rows where ALL values are None or empty strings
     df = df.dropna(how="all")
-
-    # Transpose to have company names as column headers
     df = df.T
 
     return df
@@ -175,13 +171,9 @@ def company_to_dataframe(api_results):
         ),
     }
 
-    # Create DataFrame with company names as columns
+    # Create DataFrame
     df = pd.DataFrame([company_dict], index=[company_name])
-
-    # Drop rows where ALL values are None or empty strings
     df = df.replace({"": None}).dropna(axis=1, how="all")
-
-    # Transpose to have company names as column headers
     df = df.T
 
     return df
