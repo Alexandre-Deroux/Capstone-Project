@@ -239,6 +239,6 @@ if "company_df" in st.session_state and st.session_state["company_df"] is not No
 # Authors
 st.markdown("""
 Made by [Alexandre Deroux](https://www.linkedin.com/in/alexandre-deroux), 
-[Alexia Avakian](https://www.linkedin.com/in/alexia-avakian), and 
+[Alexia Avakian](https://www.linkedin.com/in/alexia-avakian) and 
 [Constantin Guillaume](https://www.linkedin.com/in/constantin-guillaume-ldv).
 """, unsafe_allow_html=True)

@@ -4,7 +4,7 @@ from newspaper import Article
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
 
-# nltk.download('vader_lexicon') 
+# nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
 
 # Liste des domaines à exclure (Yahoo bloque l'accès)
