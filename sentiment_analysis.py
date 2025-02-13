@@ -41,35 +41,35 @@ def get_pronouns(person_name):
     """ Detects the person's gender and returns relevant pronouns for fraud detection. """
     first_name = person_name.split()[0]
     gender_guess = gender_detector.get_gender(first_name)
-    
+
     if gender_guess in ["male", "mostly_male"]:
         return ["he", "his", "him"]
     elif gender_guess in ["female", "mostly_female"]:
         return ["she", "her", "hers"]
     else:
-        return ["he", "his", "him", "she", "her", "hers"]  # Default to both if gender is unknown
+        return ["he", "his", "him", "she", "her", "hers"]
 
 def extract_fraud_sentences(text, person_name):
     """ Extracts sentences with fraud-related keywords and checks if they refer to the person. """
     sentences = sent_tokenize(text)
     fraud_sentences = [sentence for sentence in sentences if any(keyword in sentence.lower() for keyword in FRAUD_KEYWORDS)]
-    
+
     relevant_sentences = []
     pronouns = get_pronouns(person_name)
 
     for sentence in fraud_sentences:
         doc = nlp(sentence)
         subjects = [token.text.lower() for token in doc if token.dep_ in ("nsubj", "nsubjpass")]
-        
+
         # Check if the person is mentioned directly
         if person_name.lower() in sentence.lower():
             relevant_sentences.append(sentence)
             continue
-        
+
         # Check if pronouns refer to the person
         if any(pronoun in subjects for pronoun in pronouns):
             relevant_sentences.append(sentence)
-    
+
     return relevant_sentences
 
 def check_fraud_context(text, person_name):
@@ -84,14 +84,14 @@ def check_fraud_context(text, person_name):
 
             # Check if the person or their pronouns are referenced
             if person_name.lower() in sentence.lower() or any(pronoun in subjects for pronoun in pronouns):
-                return True  # Fraud is linked to the person
-                
+                return True
+
     return False
 
 def get_sentiment(fraud_sentences):
     """ Analyzes only the sentiment of fraud-related sentences"""
     sentiment_scores = []
-    
+
     for sentence in fraud_sentences:
         try:
             result = sentiment_pipeline(sentence)
@@ -100,7 +100,7 @@ def get_sentiment(fraud_sentences):
             sentiment_scores.append(score)
         except Exception:
             continue
-    
+
     return sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0  # Average sentiment
 
 person_name = "Elon Musk"
@@ -122,7 +122,7 @@ for article in articles:
     url = article.get("url", "")
 
     if any(domain in url for domain in EXCLUDED_DOMAINS):
-        continue  # Exclude blocked domains
+        continue
 
     try:
         news_article = Article(url)
@@ -135,12 +135,12 @@ for article in articles:
             fraud_sentences = extract_fraud_sentences(content, person_name)
             sentiment_score = get_sentiment(fraud_sentences)
 
-            if fraud_sentences:  # Keep only if fraud sentences are found
+            if fraud_sentences:
                 filtered_articles.append({
                     "title": article["title"],
                     "url": url,
                     "keywords": [kw for kw in FRAUD_KEYWORDS if kw in content.lower()],
-                    "summary": " ".join(fraud_sentences[:3]),  # Summarize using first 3 fraud sentences
+                    "summary": " ".join(fraud_sentences[:3]),
                     "sentiment": sentiment_score
                 })
 
