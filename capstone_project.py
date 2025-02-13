@@ -117,7 +117,7 @@ def companies_to_dataframe(api_results):
                     for pn in company.get("previous_names", [])
                 ]
             ),
-            "Industry Codes": ", ".join(
+            "Industry Descriptions": ", ".join(
                 [
                     f"{ic['industry_code'].get('description', 'Unknown')} ({ic['industry_code'].get('code', 'N/A')})"
                     for ic in company.get("industry_codes", [])
@@ -169,7 +169,7 @@ def company_to_dataframe(api_results):
         "Registry URL": safe_get(company, "registry_url"),
         "OpenCorporates URL": safe_get(company, "opencorporates_url"),
         "Previous Names": format_list(company.get("previous_names", []), "company_name"),
-        "Industry Codes": format_list(
+        "Industry Descriptions": format_list(
             [ic["industry_code"] for ic in company.get("industry_codes", []) if "industry_code" in ic],
             "description"
         ),
