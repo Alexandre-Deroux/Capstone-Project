@@ -3,10 +3,15 @@ import pandas as pd
 import streamlit as st
 import pycountry
 from difflib import get_close_matches
+import gender_guesser.detector as gender
 from datetime import datetime, timedelta
 from newspaper import Article
+from nltk.tokenize import sent_tokenize
+from transformers import pipeline
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
+import spacy
+import warnings
 
 # Configuration
 API_KEY = "wg8GiGuUTwNfRN90Qmwq"
@@ -14,17 +19,34 @@ API_KEY = "wg8GiGuUTwNfRN90Qmwq"
 # Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
 COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
 
-# List of domains to exclude (Yahoo blocks access)
+# Ignore unnecessary warnings
+warnings.simplefilter("ignore", category=FutureWarning)
+
+# Load NLP model for text parsing
+nlp = spacy.load("en_core_web_sm")
+
+# Gender detection
+gender_detector = gender.Detector()
+
+# Sentiment analysis model
+sentiment_pipeline = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
+
+# Domains to exclude
 EXCLUDED_DOMAINS = ["consent.yahoo.com"]
 
-# List of keywords related to fraud and money laundering
+# Fraud-related keywords
 FRAUD_KEYWORDS = [
-    "fraud", "money laundering", "corruption", "scandal", "financial crime", 
-    "embezzlement", "tax evasion", "scam", "lawsuit", "investigation"
+    "fraud", "money laundering", "corruption", "financial crime", "embezzlement",
+    "tax evasion", "bribery", "scam", "misconduct", "Ponzi scheme", "bank fraud",
+    "securities fraud", "tax fraud", "offshore accounts", "insider trading", "market manipulation"
 ]
 
-nltk.download('vader_lexicon')
-sia = SentimentIntensityAnalyzer()
+# Financial crime context keywords
+FRAUD_CONTEXT_WORDS = [
+    "financial crime", "money laundering", "embezzlement", "tax fraud", "bribery",
+    "securities fraud", "bank fraud", "prosecutors", "charged", "indicted", "Ponzi scheme",
+    "illegal transactions", "offshore accounts", "criminal", "felony", "trial"
+]
 
 def get_country_code(country_name):
     """
@@ -146,11 +168,15 @@ def company_to_dataframe(api_results):
     company_name = company.get("name", "Unknown Company")
 
     def safe_get(dictionary, key, default="Not Available"):
-        """Safely retrieves a key from a dictionary, returning a default value if missing."""
+        """
+        Safely retrieves a key from a dictionary, returning a default value if missing.
+        """
         return dictionary.get(key, default)
 
     def format_list(data_list, key_name):
-        """Formats a list of dictionaries into a readable string."""
+        """
+        Formats a list of dictionaries into a readable string.
+        """
         if isinstance(data_list, list):
             return ", ".join(
                 [f"{item.get(key_name, 'Unknown')}" for item in data_list if isinstance(item, dict)]
@@ -194,70 +220,149 @@ def company_to_dataframe(api_results):
 
     return df
 
-def get_sentiment(text):
-    """Calculate the sentiment score of a given text."""
-    score = sia.polarity_scores(text)
-    return score['compound'] # Score ranges from -1 (negative) to 1 (positive)
-
-def contains_fraud_keywords(text):
-    """Check if the article contains any fraud-related keywords."""
-    return any(keyword in text.lower() for keyword in FRAUD_KEYWORDS)
-
-def fetch_fraudulent_news(query, days=30):
+def get_pronouns(person_name):
     """
-    Fetch news articles related to the given query from the past specified days, filter those discussing fraud or money laundering with a negative sentiment.
+    Detects the person's gender and returns relevant pronouns for fraud detection.
     """
-    date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
-    url = f"https://newsapi.org/v2/everything?q={query}&from={date}&sortBy=popularity&apiKey=4bc3b879ee624f939ec5e7f1c38451ef"
+    first_name = person_name.split()[0]
+    gender_guess = gender_detector.get_gender(first_name)
+    
+    if gender_guess in ["male", "mostly_male"]:
+        return ["he", "his", "him"]
+    elif gender_guess in ["female", "mostly_female"]:
+        return ["she", "her", "hers"]
+    else:
+        return ["he", "his", "him", "she", "her", "hers"]
+
+def extract_fraud_sentences(text, person_name):
+    """
+    Extracts sentences with fraud-related keywords and checks if they refer to the person.
+    """
+    sentences = sent_tokenize(text)
+    fraud_sentences = [sentence for sentence in sentences if any(keyword in sentence.lower() for keyword in FRAUD_KEYWORDS)]
+    
+    relevant_sentences = []
+    pronouns = get_pronouns(person_name)
+
+    for sentence in fraud_sentences:
+        doc = nlp(sentence)
+        subjects = [token.text.lower() for token in doc if token.dep_ in ("nsubj", "nsubjpass")]
+        
+        # Check if the person is mentioned directly
+        if person_name.lower() in sentence.lower():
+            relevant_sentences.append(sentence)
+            continue
+        
+        # Check if pronouns refer to the person
+        if any(pronoun in subjects for pronoun in pronouns):
+            relevant_sentences.append(sentence)
+    
+    return relevant_sentences
+
+def check_fraud_context(text, person_name):
+    """
+    Ensures fraud is actually related to the person, not just mentioned randomly.
+    """
+    sentences = sent_tokenize(text)
+    pronouns = get_pronouns(person_name)
+
+    for sentence in sentences:
+        if any(keyword in sentence.lower() for keyword in FRAUD_KEYWORDS) and any(context in sentence.lower() for context in FRAUD_CONTEXT_WORDS):
+            doc = nlp(sentence)
+            subjects = [token.text.lower() for token in doc if token.dep_ in ("nsubj", "nsubjpass")]
+
+            # Check if the person or their pronouns are referenced
+            if person_name.lower() in sentence.lower() or any(pronoun in subjects for pronoun in pronouns):
+                return True
+                
+    return False
+
+def get_sentiment(fraud_sentences):
+    """
+    Analyzes only the sentiment of fraud-related sentences.
+    """
+    sentiment_scores = []
+    
+    for sentence in fraud_sentences:
+        try:
+            result = sentiment_pipeline(sentence)
+            label = result[0]['label']
+            score = {"1 star": -1, "2 stars": -0.5, "3 stars": 0, "4 stars": 0.5, "5 stars": 1}.get(label, 0)
+            sentiment_scores.append(score)
+        except Exception:
+            continue
+    
+    return sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
+
+def fetch_news_articles(person_name):
+    """
+    Fetches news articles related to the person using NewsAPI.
+    """
+    date = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    url = f"https://newsapi.org/v2/everything?q={person_name}&from={date}&sortBy=popularity&apiKey=4bc3b879ee624f939ec5e7f1c38451ef"
 
     response = requests.get(url)
 
-    if response.status_code != 200:
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("articles", [])
+    else:
         st.error(f"❌ Error {response.status_code}: {response.text}")
         return []
 
-    data = response.json()
-    articles = data.get("articles", [])
+def process_articles(articles, person_name):
+    """
+    Processes articles to extract fraud-related information.
+    """
     filtered_articles = []
 
     for article in articles:
-        article_url = article.get("url", "")
+        url = article.get("url", "")
 
-        # Filter out prohibited URLs
-        if any(domain in article_url for domain in EXCLUDED_DOMAINS):
-            continue 
+        if any(domain in url for domain in EXCLUDED_DOMAINS):
+            continue
 
         try:
-            news_article = Article(article_url)
+            news_article = Article(url)
             news_article.download()
             news_article.parse()
             content = news_article.text
 
-            # Check if the article discusses fraud/money laundering and has a negative sentiment
-            sentiment_score = get_sentiment(content)
-            if sentiment_score < 0 and contains_fraud_keywords(content):
-                filtered_articles.append((article["title"], article_url, sentiment_score))
-                st.markdown(
-                    f"""
-                    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-                        <p style="margin: 5px 0;">✅ <b>{article['title']}</b></p>
-                        <p style="margin: 5px 0;">
-                            <a href="{article_url}" target="_blank" style="color: #0078ff; text-decoration: none;">
-                                🔗 {article_url}
-                            </a>
-                        </p>
-                        <p style="margin: 5px 0;">📊 Sentiment: {sentiment_score:.2f}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            # Verify that the article discusses fraud related to the person
+            if check_fraud_context(content, person_name):
+                fraud_sentences = extract_fraud_sentences(content, person_name)
+                sentiment_score = get_sentiment(fraud_sentences)
+
+                if fraud_sentences:
+                    filtered_articles.append({
+                        "title": article["title"],
+                        "url": url,
+                        "keywords": [kw for kw in FRAUD_KEYWORDS if kw in content.lower()],
+                        "summary": " ".join(fraud_sentences[:3]),
+                        "sentiment": sentiment_score
+                    })
 
         except Exception:
             continue
 
-    # Compute the overall sentiment based on the filtered articles
+    return filtered_articles
+
+def analyze_fraud_news(person_name):
+    """
+    Main function to analyze fraud-related news for a given person.
+    """
+    articles = fetch_news_articles(person_name)
+
+    if not articles:
+        st.info("ℹ️ No fraudulent news found.")
+        return
+
+    filtered_articles = process_articles(articles, person_name)
+
+    # Compute the average sentiment across all fraud-related articles
     if filtered_articles:
-        global_sentiment = sum(s[2] for s in filtered_articles) / len(filtered_articles)
+        global_sentiment = sum(article["sentiment"] for article in filtered_articles) / len(filtered_articles)
+
         st.markdown(
             f"""
             <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
@@ -266,10 +371,25 @@ def fetch_fraudulent_news(query, days=30):
             """,
             unsafe_allow_html=True
         )
+        for article in filtered_articles:
+            st.markdown(
+                f"""
+                <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <p style="margin: 5px 0;">📰 <b>{article['title']}</b></p>
+                    <p style="margin: 5px 0;">
+                        <a href="{article['url']}" target="_blank" style="color: #0078ff; text-decoration: none;">
+                            🔗 {article['url']}
+                        </a>
+                    </p>
+                    <p style="margin: 5px 0;">📌 Keywords: {', '.join(article['keywords'])}</p>
+                    <p style="margin: 5px 0;">📄 Summary: {article['summary']}</p>
+                    <p style="margin: 5px 0;">📊 Sentiment: {article['sentiment']:.2f}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     else:
-        st.info("ℹ️ No fraudulent news found.")
-
-    return filtered_articles
+        st.info("ℹ️ No relevant fraudulent news found.")
 
 # Application title
 st.set_page_config(page_title="Anti-Money Laundering", page_icon="🔍", layout="wide")
@@ -351,7 +471,7 @@ if st.session_state.get("company_results"):
         # Fetch fraudulent news
         if st.button("📰 Fetch Fraudulent News"):
             with st.spinner("Retrieving data..."):
-                fetch_fraudulent_news(selected_name)
+                analyze_fraud_news(selected_name)
     else:
         st.info("ℹ️ No results found for this search.")
 
