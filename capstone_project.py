@@ -271,93 +271,110 @@ def fetch_fraudulent_news(query, days=30):
 
     return filtered_articles
 
-# Application title
+# Page configuration
 st.set_page_config(page_title="Anti-Money Laundering", page_icon="🔍", layout="wide")
 st.title("🔍 Anti-Money Laundering")
 st.write("This application enables you to combat the risk of money laundering.")
 
-# User inputs
-query = st.text_input("🏢 Enter the Company Name:", "BNP Paribas")
-country = st.selectbox("🌍 Select the Country (Optional):", ["None"] + sorted(COUNTRIES.keys()), index=0)
-country = None if country == "None" else country
-address = st.text_input("📍 Enter the Address (Optional):", "")
-address = None if address == "" else address
+# Function for displaying a company's search fields
+def company_search_section(role):
+    """
+    Displays the company search section (Sender/Recipient).
+    """
+    query = st.text_input(f"🏢 Enter the {role} Name:", key=f"{role}_query")
+    country = st.selectbox(f"🌍 Select the {role} Country (Optional):", ["None"] + sorted(COUNTRIES.keys()), index=0, key=f"{role}_country")
+    country = None if country == "None" else country
+    address = st.text_input(f"📍 Enter the {role} Address (Optional):", "", key=f"{role}_address")
+    address = None if address == "" else address
 
-# Search companies
-if st.button("🔍 Search Companies"):
-    with st.spinner("Retrieving data..."):
-        companies_results = search_companies(query=query, country=country, address=address)
-        if companies_results:
-            company_df = companies_to_dataframe(companies_results)
-            st.session_state["company_df"] = company_df
-            st.session_state["company_index"] = 0
-            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[0] if not company_df.empty else None
-            st.session_state["company_results"] = None
-            st.session_state["selected_name"] = None
+    if st.button(f"🔍 Search {role} Companies", key=f"{role}_search"):
+        with st.spinner("Retrieving data..."):
+            companies_results = search_companies(query=query, country=country, address=address)
+            if companies_results:
+                company_df = companies_to_dataframe(companies_results)
+                st.session_state[f"{role}_company_df"] = company_df
+                st.session_state[f"{role}_company_index"] = 0
+                st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[0] if not company_df.empty else None
+                st.session_state[f"{role}_company_results"] = None
+                st.session_state[f"{role}_df"] = None
+                st.session_state[f"{role}_selected_name"] = None
+            else:
+                st.session_state[f"{role}_company_df"] = None
+                st.session_state[f"{role}_company_index"] = None
+
+# Function for displaying a company's results
+def company_results_section(role):
+    """
+    Displays search results for a company (Sender/Recipient).
+    """
+    if st.session_state.get(f"{role}_company_df") is not None:
+        company_df = st.session_state[f"{role}_company_df"]
+        company_dataframe = company_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
+
+        if not company_df.empty:
+            st.dataframe(company_dataframe, use_container_width=True)
+
+            # Company selection
+            company_options = [f"{i + 1} - {name}" for i, name in enumerate(company_df.index)]
+            selected_company = st.selectbox(f"🏢 Select the {role} Company:", company_options, index=st.session_state[f"{role}_company_index"], key=f"{role}_select")
+            new_index = int(selected_company.split(" - ", 1)[0]) - 1
+
+            if new_index != st.session_state[f"{role}_company_index"]:
+                st.session_state[f"{role}_company_index"] = new_index
+                st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
+                st.session_state[f"{role}_company_results"] = None
+                st.session_state[f"{role}_df"] = None
+                st.session_state[f"{role}_selected_name"] = None
+
+            # Retrieve company information
+            if st.button(f"🚀 Fetch {role} Information", key=f"{role}_fetch"):
+                with st.spinner("Retrieving data..."):
+                    company_results = search_company(st.session_state[f"{role}_company_url"])
+                    if company_results:
+                        st.session_state[f"{role}_company_results"] = company_results
+                    else:
+                        st.error("❌ No data retrieved from the API.")
         else:
-            st.session_state["company_df"] = None
-            st.session_state["company_index"] = None
+            st.info(f"ℹ️ No results found for {role}.")
 
-# Display companies
-if st.session_state.get("company_df") is not None:
-    company_df = st.session_state["company_df"]
-    company_dataframe = company_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
+# Function for displaying company details + fraud search
+def company_details_section(role):
+    """
+    Displays a company's details and allows you to search for fraudulent information.
+    """
+    if st.session_state.get(f"{role}_company_results"):
+        company_results = st.session_state[f"{role}_company_results"]
+        df = company_to_dataframe(company_results)
 
-    if not company_df.empty:
-        st.subheader("📋 Companies Information")
-        st.dataframe(company_dataframe, use_container_width=True)
+        if not df.empty:
+            st.session_state[f"{role}_df"] = df
+            st.dataframe(df, use_container_width=True)
 
-        # Company selection
-        company_options = [f"{i + 1} - {name}" for i, name in enumerate(company_df.index)]
-        selected_company = st.selectbox("🏢 Select the Company:", company_options, index=st.session_state["company_index"])
-        new_index = int(selected_company.split(" - ", 1)[0]) - 1
+            # Name selection
+            company_name = df.columns[0]
+            officers = df.loc["Officers"].values[0] if "Officers" in df.index else ""
+            search_options = [company_name] + officers.split(", ") if officers else [company_name]
+            saved_name = st.session_state.get(f"{role}_selected_name", search_options[0])
+            if saved_name not in search_options:
+                saved_name = search_options[0]
+            selected_name = st.selectbox(f"🔍 Select a {role} Name:", search_options, index=search_options.index(saved_name), key=f"{role}_name_select")
+            st.session_state[f"{role}_selected_name"] = selected_name
 
-        if new_index != st.session_state["company_index"]:
-            st.session_state["company_index"] = new_index
-            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
-            st.session_state["company_results"] = None
-            st.session_state["selected_name"] = None
+            # Search for fraudulent items
+            if st.button(f"📰 Fetch {role} Fraudulent News", key=f"{role}_news"):
+                with st.spinner("Retrieving data..."):
+                    fetch_fraudulent_news(selected_name)
+        else:
+            st.info(f"ℹ️ No results found for {role}.")
 
-        # Fetch company information
-        if st.button("🚀 Fetch Company Information"):
-            with st.spinner("Retrieving data..."):
-                company_results = search_company(st.session_state["company_url"])
-                if company_results:
-                    st.session_state["company_results"] = company_results
-                else:
-                    st.error("❌ No data retrieved from the API.")
-    else:
-        st.info("ℹ️ No results found for this search.")
+# Sender company information
+st.header("🚀 Sender Company Information")
+company_search_section("Sender")
+company_results_section("Sender")
+company_details_section("Sender")
 
-# Display company details
-if st.session_state.get("company_results"):
-    company_results = st.session_state["company_results"]
-    df = company_to_dataframe(company_results)
-
-    if not df.empty:
-        st.subheader("📋 Company Information")
-        st.dataframe(df, use_container_width=True)
-
-        # Name selection
-        company_name = df.columns[0]
-        officers = df.loc["Officers"].values[0] if "Officers" in df.index else ""
-        search_options = [company_name] + officers.split(", ") if officers else [company_name]
-        saved_name = st.session_state.get("selected_name", search_options[0])
-        if saved_name not in search_options:
-            saved_name = search_options[0]
-        selected_name = st.selectbox("🔍 Select a Name:", search_options, index=search_options.index(saved_name))
-        st.session_state["selected_name"] = selected_name
-
-        # Fetch fraudulent news
-        if st.button("📰 Fetch Fraudulent News"):
-            with st.spinner("Retrieving data..."):
-                fetch_fraudulent_news(selected_name)
-    else:
-        st.info("ℹ️ No results found for this search.")
-
-# Authors
-st.markdown("""
-Made by [Alexandre Deroux](https://www.linkedin.com/in/alexandre-deroux), 
-[Alexia Avakian](https://www.linkedin.com/in/alexia-avakian) and 
-[Constantin Guillaume](https://www.linkedin.com/in/constantin-guillaume-ldv).
-""", unsafe_allow_html=True)
+# Recipient company information
+st.header("🎯 Recipient Company Information")
+company_search_section("Recipient")
+company_results_section("Recipient")
+company_details_section("Recipient")
