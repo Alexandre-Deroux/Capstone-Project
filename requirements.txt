@@ -2,9 +2,6 @@ requests
 pandas
 streamlit
 pycountry
-gender-guesser
 newspaper3k
-transformers
 nltk
-spacy
 lxml_html_clean
