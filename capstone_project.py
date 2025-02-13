@@ -23,7 +23,12 @@ COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.coun
 warnings.simplefilter("ignore", category=FutureWarning)
 
 # Load NLP model for text parsing
-nlp = spacy.load("en_core_web_sm")
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    import spacy.cli
+    spacy.cli.download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
 # Gender detection
 gender_detector = gender.Detector()
