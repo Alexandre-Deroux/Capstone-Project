@@ -2,3 +2,5 @@ requests
 pandas
 streamlit
 pycountry
+newspaper3k
+nltk

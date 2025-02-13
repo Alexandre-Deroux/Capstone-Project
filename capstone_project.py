@@ -3,12 +3,28 @@ import pandas as pd
 import streamlit as st
 import pycountry
 from difflib import get_close_matches
+from datetime import datetime, timedelta
+from newspaper import Article
+from nltk.sentiment import SentimentIntensityAnalyzer
+import nltk
 
 # Configuration
 API_KEY = "wg8GiGuUTwNfRN90Qmwq"
 
 # Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
 COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
+
+# List of domains to exclude (Yahoo blocks access)
+EXCLUDED_DOMAINS = ["consent.yahoo.com"]
+
+# List of keywords related to fraud and money laundering
+FRAUD_KEYWORDS = [
+    "fraud", "money laundering", "corruption", "scandal", "financial crime", 
+    "embezzlement", "tax evasion", "scam", "lawsuit", "investigation"
+]
+
+nltk.download('vader_lexicon')
+sia = SentimentIntensityAnalyzer()
 
 def get_country_code(country_name):
     """
@@ -70,7 +86,7 @@ def search_company(company_url):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error during request: {e}")
+        st.error(f"❌ Error during request: {e}")
         return None
 
 def companies_to_dataframe(api_results):
@@ -113,7 +129,7 @@ def companies_to_dataframe(api_results):
 
     # Create DataFrame
     df = pd.DataFrame(companies)
-    df = df.dropna(how="all")
+    df = df.replace({"": None}).dropna(how="all")
     df = df.T
 
     return df
@@ -178,6 +194,83 @@ def company_to_dataframe(api_results):
 
     return df
 
+def get_sentiment(text):
+    """Calculate the sentiment score of a given text."""
+    score = sia.polarity_scores(text)
+    return score['compound'] # Score ranges from -1 (negative) to 1 (positive)
+
+def contains_fraud_keywords(text):
+    """Check if the article contains any fraud-related keywords."""
+    return any(keyword in text.lower() for keyword in FRAUD_KEYWORDS)
+
+def fetch_fraudulent_news(query, days=30):
+    """
+    Fetch news articles related to the given query from the past specified days, filter those discussing fraud or money laundering with a negative sentiment.
+    """
+    date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
+    url = f"https://newsapi.org/v2/everything?q={query}&from={date}&sortBy=popularity&apiKey=4bc3b879ee624f939ec5e7f1c38451ef"
+
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        st.error(f"❌ Error {response.status_code}: {response.text}")
+        return []
+
+    data = response.json()
+    articles = data.get("articles", [])
+    filtered_articles = []
+
+    for article in articles:
+        article_url = article.get("url", "")
+
+        # Filter out prohibited URLs
+        if any(domain in article_url for domain in EXCLUDED_DOMAINS):
+            continue 
+
+        try:
+            news_article = Article(article_url)
+            news_article.download()
+            news_article.parse()
+            content = news_article.text
+
+            # Check if the article discusses fraud/money laundering and has a negative sentiment
+            sentiment_score = get_sentiment(content)
+            if sentiment_score < 0 and contains_fraud_keywords(content):
+                filtered_articles.append((article["title"], article_url, sentiment_score))
+                st.markdown(
+                    f"""
+                    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <p style="margin: 5px 0;">✅ <b>{article['title']}</b></p>
+                        <p style="margin: 5px 0;">
+                            <a href="{article_url}" target="_blank" style="color: #0078ff; text-decoration: none;">
+                                🔗 {article_url}
+                            </a>
+                        </p>
+                        <p style="margin: 5px 0;">📊 Sentiment: {sentiment_score:.2f}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+        except Exception:
+            continue
+
+    # Compute the overall sentiment based on the filtered articles
+    if filtered_articles:
+        global_sentiment = sum(s[2] for s in filtered_articles) / len(filtered_articles)
+        st.markdown(
+            f"""
+            <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                <p style="margin: 5px 0;">🎯 <b>Global sentiment for "{query}": {global_sentiment:.2f}</b></p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.info("ℹ️ No fraudulent news found.")
+
+    return filtered_articles
+
 # Application title
 st.set_page_config(page_title="Anti-Money Laundering", page_icon="🔍", layout="wide")
 st.title("🔍 Anti-Money Laundering")
@@ -198,41 +291,67 @@ if st.button("🔍 Search Companies"):
             company_df = companies_to_dataframe(companies_results)
             st.session_state["company_df"] = company_df
             st.session_state["company_index"] = 0
+            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[0] if not company_df.empty else None
+            st.session_state["company_results"] = None
+            st.session_state["selected_name"] = None
         else:
             st.session_state["company_df"] = None
             st.session_state["company_index"] = None
 
 # Display companies
-if "company_df" in st.session_state and st.session_state["company_df"] is not None:
+if st.session_state.get("company_df") is not None:
     company_df = st.session_state["company_df"]
     company_dataframe = company_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
+
     if not company_df.empty:
         st.subheader("📋 Companies Information")
         st.dataframe(company_dataframe, use_container_width=True)
-        if "company_index" not in st.session_state:
-            st.session_state["company_index"] = 0
-        if "company_url" not in st.session_state:
-            st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[0]
+
+        # Company selection
         company_options = [f"{i + 1} - {name}" for i, name in enumerate(company_df.index)]
         selected_company = st.selectbox("🏢 Select the Company:", company_options, index=st.session_state["company_index"])
         new_index = int(selected_company.split(" - ", 1)[0]) - 1
+
         if new_index != st.session_state["company_index"]:
             st.session_state["company_index"] = new_index
             st.session_state["company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
+            st.session_state["company_results"] = None
+            st.session_state["selected_name"] = None
 
-        # Display company
-        if st.button("🚀 Fetch Company Information") and "company_url" in st.session_state:
+        # Fetch company information
+        if st.button("🚀 Fetch Company Information"):
             with st.spinner("Retrieving data..."):
                 company_results = search_company(st.session_state["company_url"])
                 if company_results:
-                    df = company_to_dataframe(company_results)
-                    if not df.empty:
-                        st.subheader("📋 Company Information")
-                        st.dataframe(df, use_container_width=True)
-                    else:
-                        st.info("ℹ️ No results found for this search.")
+                    st.session_state["company_results"] = company_results
                 else:
                     st.error("❌ No data retrieved from the API.")
+    else:
+        st.info("ℹ️ No results found for this search.")
+
+# Display company details
+if st.session_state.get("company_results"):
+    company_results = st.session_state["company_results"]
+    df = company_to_dataframe(company_results)
+
+    if not df.empty:
+        st.subheader("📋 Company Information")
+        st.dataframe(df, use_container_width=True)
+
+        # Name selection
+        company_name = df.columns[0]
+        officers = df.loc["Officers"].values[0] if "Officers" in df.index else ""
+        search_options = [company_name] + officers.split(", ") if officers else [company_name]
+        saved_name = st.session_state.get("selected_name", search_options[0])
+        if saved_name not in search_options:
+            saved_name = search_options[0]
+        selected_name = st.selectbox("🔍 Select a Name:", search_options, index=search_options.index(saved_name))
+        st.session_state["selected_name"] = selected_name
+
+        # Fetch fraudulent news
+        if st.button("📰 Fetch Fraudulent News"):
+            with st.spinner("Retrieving data..."):
+                fetch_fraudulent_news(selected_name)
     else:
         st.info("ℹ️ No results found for this search.")
 
