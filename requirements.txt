@@ -4,4 +4,3 @@ streamlit
 pycountry
 newspaper3k
 nltk
-lxml
