@@ -404,7 +404,7 @@ def generate_risk_analysis_prompt(sender_info, recipient_info):
 # Function for analyse AML risk
 def analyse_aml_risk(sender_info, recipient_info):
     """
-    Analyse the risk of money laundering using Mistral 7B with llama.cpp.
+    Analyse the risk of money laundering using Llama 3.2 3B Instruct with llama.cpp.
     """
     prompt = generate_risk_analysis_prompt(sender_info, recipient_info)
     response = llm(prompt, max_tokens=500, temperature=0.3)
