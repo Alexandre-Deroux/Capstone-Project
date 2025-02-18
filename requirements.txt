@@ -5,3 +5,4 @@ pycountry
 newspaper3k
 nltk
 lxml_html_clean
+llama-cpp-python

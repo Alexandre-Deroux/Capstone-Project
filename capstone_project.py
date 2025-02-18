@@ -7,9 +7,10 @@ from datetime import datetime, timedelta
 from newspaper import Article
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
+from llama_cpp import Llama
 
 # Configuration
-API_KEY = "wg8GiGuUTwNfRN90Qmwq"
+OPENCORPORATES_API_KEY = "wg8GiGuUTwNfRN90Qmwq"
 
 # Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
 COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
@@ -23,8 +24,12 @@ FRAUD_KEYWORDS = [
     "embezzlement", "tax evasion", "scam", "lawsuit", "investigation"
 ]
 
+# Download the VADER sentiment analysis model
 nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
+
+# Load the GGUF model
+llm = Llama(model_path="llama-3.2-3b-instruct.Q4_K_M.gguf", n_ctx=4096)
 
 def get_country_code(country_name):
     """
@@ -60,7 +65,7 @@ def search_companies(query, country=None, address=None):
         "country_code": country_code,
         "registered_address": address,
         "order": 'score',
-        "api_token": API_KEY
+        "api_token": OPENCORPORATES_API_KEY
     }
 
     params = {key: value for key, value in params.items() if value is not None}
@@ -78,7 +83,7 @@ def search_company(company_url):
     Searches for company using the OpenCorporates API.
     """
     params = {
-        "api_token": API_KEY
+        "api_token": OPENCORPORATES_API_KEY
     }
 
     try:
@@ -296,7 +301,6 @@ def company_search_section(role):
                 st.session_state[f"{role}_company_index"] = 0
                 st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[0] if not company_df.empty else None
                 st.session_state[f"{role}_company_results"] = None
-                st.session_state[f"{role}_df"] = None
                 st.session_state[f"{role}_selected_name"] = None
             else:
                 st.session_state[f"{role}_company_df"] = None
@@ -323,7 +327,6 @@ def company_results_section(role):
                 st.session_state[f"{role}_company_index"] = new_index
                 st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
                 st.session_state[f"{role}_company_results"] = None
-                st.session_state[f"{role}_df"] = None
                 st.session_state[f"{role}_selected_name"] = None
 
             # Retrieve company information
@@ -347,7 +350,6 @@ def company_details_section(role):
         df = company_to_dataframe(company_results)
 
         if not df.empty:
-            st.session_state[f"{role}_df"] = df
             st.dataframe(df, use_container_width=True)
 
             # Name selection
@@ -367,6 +369,47 @@ def company_details_section(role):
         else:
             st.info(f"ℹ️ No results found for {role}.")
 
+# Function for extracting company information in text form
+def extract_company_info(role):
+    if st.session_state.get(f"{role}_company_results"):
+        df = company_to_dataframe(st.session_state[f"{role}_company_results"])
+        if not df.empty:
+            return df.to_string(index=True)
+    return "No information available."
+
+# Function to generate the LLM prompt
+def generate_risk_analysis_prompt(sender_info, recipient_info):
+    prompt = f"""
+    You are a financial crime expert specializing in Anti-Money Laundering (AML). 
+    Analyze the risk of money laundering between the following two entities based on their details:
+
+    📌 **Sender Company Information**:
+    {sender_info}
+
+    📌 **Recipient Company Information**:
+    {recipient_info}
+
+    🎯 **Task**:
+    1. Assign a **risk score from 0 to 100**, where:
+    - 0 = No risk
+    - 100 = Extremely high risk
+    2. Explain the reasoning behind the score.
+    3. Identify potential risk indicators (e.g., offshore accounts, politically exposed persons, high-risk industries).
+    4. Suggest actions to mitigate the risk.
+
+    Please provide a structured response with the **Risk Score** followed by an **Explanation**.
+    """
+    return prompt
+
+# Function for analyse AML risk
+def analyse_aml_risk(sender_info, recipient_info):
+    """
+    Analyse the risk of money laundering using Mistral 7B with llama.cpp.
+    """
+    prompt = generate_risk_analysis_prompt(sender_info, recipient_info)
+    response = llm(prompt, max_tokens=500, temperature=0.3)
+    return response["choices"][0]["text"]
+
 # Sender company information
 st.header("🚀 Sender Company Information")
 company_search_section("Sender")
@@ -378,3 +421,15 @@ st.header("🎯 Recipient Company Information")
 company_search_section("Recipient")
 company_results_section("Recipient")
 company_details_section("Recipient")
+
+# AML risk assessment
+st.header("⚠️ AML Risk Assessment")
+if st.session_state.get("Sender_company_results") and st.session_state.get("Recipient_company_results"):
+    sender_info = extract_company_info("Sender")
+    recipient_info = extract_company_info("Recipient")
+
+    if st.button("🛡️ Analyse AML Risk"):
+        with st.spinner("Analysing money laundering risk..."):
+            risk_analysis_result = analyse_aml_risk(sender_info, recipient_info)
+            st.subheader("📋 Risk Analysis Result")
+            st.write(risk_analysis_result)
