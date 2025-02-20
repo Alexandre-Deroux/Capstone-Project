@@ -1,51 +1,51 @@
 sender,sender_country,sender_address,recipient,recipient_country,recipient_address,amount,reference,reason,fraud
-GlobalTech Ltd,France,Paris,NextGen Corp,USA,New York,12500,INV-20240101,Consulting Services,No fraud
-Alpha S.A.,Germany,Berlin,Delta Ltd,UK,London,8700,PAY-20240102,Software License,No fraud
+GlobalTech Ltd,France,Paris,NextGen Corp,USA,New York,12500,INV-20240101,Consulting Services,No Fraud
+Alpha S.A.,Germany,Berlin,Delta Ltd,UK,London,8700,PAY-20240102,Software License,No Fraud
 SecureBank,USA,San Francisco,CryptoTrust,Singapore,Singapore,500000,TXN-20240103,Investment,Fraud
-GreenEnergy,Netherlands,Amsterdam,EcoFuture,Sweden,Stockholm,15200,INV-20240104,Solar Panel Supply,No fraud
+GreenEnergy,Netherlands,Amsterdam,EcoFuture,Sweden,Stockholm,15200,INV-20240104,Solar Panel Supply,No Fraud
 FastLogistics,Italy,Rome,SpeedyTrans,France,Lyon,4800,PAY-20240105,Freight Charge,Fraud
 BlueFinance,Switzerland,Geneva,SafeBank,Hong Kong,Hong Kong,120000,TXN-20240106,Bank Transfer,Fraud
-TechInnovate,Canada,Toronto,DevSolutions,USA,San Diego,3000,INV-20240107,Software Development,No fraud
-MedicalSupplies,Spain,Madrid,HealthFirst,Italy,Milan,9200,PAY-20240108,Medical Equipment,No fraud
+TechInnovate,Canada,Toronto,DevSolutions,USA,San Diego,3000,INV-20240107,Software Development,No Fraud
+MedicalSupplies,Spain,Madrid,HealthFirst,Italy,Milan,9200,PAY-20240108,Medical Equipment,No Fraud
 QuantumInvest,Luxembourg,Luxembourg,CryptoSafe,UAE,Dubai,750000,TXN-20240109,Investment,Fraud
-SmartRetail,Mexico,Mexico City,FastRetail,Brazil,S�o Paulo,6200,INV-20240110,Retail Goods,No fraud
-TradeGlobal,India,Mumbai,TextileWorld,Bangladesh,Dhaka,34000,PAY-20240111,Textile Supply,No fraud
-EnergySolutions,Norway,Oslo,GreenTech,Denmark,Copenhagen,18000,INV-20240112,Wind Turbines,No fraud
+SmartRetail,Mexico,Mexico City,FastRetail,Brazil,S�o Paulo,6200,INV-20240110,Retail Goods,No Fraud
+TradeGlobal,India,Mumbai,TextileWorld,Bangladesh,Dhaka,34000,PAY-20240111,Textile Supply,No Fraud
+EnergySolutions,Norway,Oslo,GreenTech,Denmark,Copenhagen,18000,INV-20240112,Wind Turbines,No Fraud
 TrustBank,USA,Chicago,CoinSafe,Switzerland,Zurich,950000,TXN-20240113,Crypto Exchange,Fraud
 LuxuryCars,Germany,Munich,AutoDealers,UAE,Abu Dhabi,57000,PAY-20240114,Luxury Car Purchase,Fraud
-CloudNet,UK,Manchester,DataSecure,France,Paris,13400,INV-20240115,Cloud Storage,No fraud
-AgroExport,Brazil,Rio de Janeiro,Farmers Ltd,Argentina,Buenos Aires,27500,PAY-20240116,Agricultural Supply,No fraud
+CloudNet,UK,Manchester,DataSecure,France,Paris,13400,INV-20240115,Cloud Storage,No Fraud
+AgroExport,Brazil,Rio de Janeiro,Farmers Ltd,Argentina,Buenos Aires,27500,PAY-20240116,Agricultural Supply,No Fraud
 SecureInvest,USA,New York,WealthTrust,Cayman Islands,George Town,850000,TXN-20240117,Offshore Investment,Fraud
-PharmaCorp,France,Lyon,HealthLife,Germany,Berlin,15600,INV-20240118,Pharmaceutical Products,No fraud
-SpeedCargo,Japan,Tokyo,QuickShip,South Korea,Seoul,4900,PAY-20240119,Logistics,No fraud
+PharmaCorp,France,Lyon,HealthLife,Germany,Berlin,15600,INV-20240118,Pharmaceutical Products,No Fraud
+SpeedCargo,Japan,Tokyo,QuickShip,South Korea,Seoul,4900,PAY-20240119,Logistics,No Fraud
 FinaTrust,Switzerland,Zurich,CryptoWealth,UAE,Dubai,670000,TXN-20240120,Investment,Fraud
-SoftWareHouse,Canada,Montreal,ITSolutions,USA,Boston,7800,INV-20240121,Software Purchase,No fraud
-IndustrialTech,Italy,Milan,SteelCorp,Germany,Hamburg,22600,PAY-20240122,Industrial Equipment,No fraud
-OceanTrade,Netherlands,Rotterdam,SeaTransport,Norway,Oslo,31500,INV-20240123,Maritime Services,No fraud
+SoftWareHouse,Canada,Montreal,ITSolutions,USA,Boston,7800,INV-20240121,Software Purchase,No Fraud
+IndustrialTech,Italy,Milan,SteelCorp,Germany,Hamburg,22600,PAY-20240122,Industrial Equipment,No Fraud
+OceanTrade,Netherlands,Rotterdam,SeaTransport,Norway,Oslo,31500,INV-20240123,Maritime Services,No Fraud
 FastInvest,USA,Los Angeles,CryptoTrust,Switzerland,Geneva,900000,TXN-20240124,High-Risk Investment,Fraud
-FoodGlobal,Mexico,Guadalajara,SuperMarket,Colombia,Bogot�,11200,PAY-20240125,Food Supply,No fraud
+FoodGlobal,Mexico,Guadalajara,SuperMarket,Colombia,Bogot�,11200,PAY-20240125,Food Supply,No Fraud
 SmartBank,Germany,Frankfurt,SecurePayments,UK,London,780000,TXN-20240126,Wire Transfer Fraud,Fraud
 LuxuryJewels,Italy,Venice,DiamondCorp,UAE,Dubai,125000,PAY-20240127,Jewelry Purchase,Fraud
-E-Tech,France,Marseille,ITServices,Spain,Barcelona,9200,INV-20240128,IT Consultancy,No fraud
-AutoParts,Brazil,S�o Paulo,CarFix,Argentina,C�rdoba,18500,PAY-20240129,Auto Components,No fraud
-FashionStyle,UK,London,TrendyWear,USA,Los Angeles,15400,INV-20240130,Clothing Supply,No fraud
-GreenFarm,Australia,Sydney,BioFood,New Zealand,Auckland,19800,PAY-20240131,Organic Products,No fraud
+E-Tech,France,Marseille,ITServices,Spain,Barcelona,9200,INV-20240128,IT Consultancy,No Fraud
+AutoParts,Brazil,S�o Paulo,CarFix,Argentina,C�rdoba,18500,PAY-20240129,Auto Components,No Fraud
+FashionStyle,UK,London,TrendyWear,USA,Los Angeles,15400,INV-20240130,Clothing Supply,No Fraud
+GreenFarm,Australia,Sydney,BioFood,New Zealand,Auckland,19800,PAY-20240131,Organic Products,No Fraud
 CyberBank,USA,Miami,BitSafe,Switzerland,Zug,990000,TXN-20240132,Crypto Transaction,Fraud
-ShipFast,China,Shanghai,QuickLogistics,USA,Seattle,4500,INV-20240133,Shipping Costs,No fraud
+ShipFast,China,Shanghai,QuickLogistics,USA,Seattle,4500,INV-20240133,Shipping Costs,No Fraud
 LuxuryBoats,Italy,Venice,MarineYachts,UAE,Dubai,210000,PAY-20240134,Yacht Purchase,Fraud
-SteelWorks,Germany,D�sseldorf,IndustrialCo,France,Lyon,23000,INV-20240135,Raw Materials,No fraud
-SunEnergy,Spain,Barcelona,SolarFuture,Portugal,Lisbon,16500,PAY-20240136,Solar Panels,No fraud
+SteelWorks,Germany,D�sseldorf,IndustrialCo,France,Lyon,23000,INV-20240135,Raw Materials,No Fraud
+SunEnergy,Spain,Barcelona,SolarFuture,Portugal,Lisbon,16500,PAY-20240136,Solar Panels,No Fraud
 FinanceTrust,Switzerland,Basel,SafeInvest,UK,London,820000,TXN-20240137,Wealth Management,Fraud
 CryptoBank,USA,New York,CoinTrust,Switzerland,Z�rich,750000,TXN-20240138,Cryptocurrency Exchange,Fraud
-RetailHub,Canada,Vancouver,ShopFast,USA,San Francisco,8900,INV-20240139,E-commerce Services,No fraud
-TransGlobal,France,Marseille,LogiFast,Spain,Madrid,3700,PAY-20240140,International Shipping,No fraud
-EcoTrade,Denmark,Copenhagen,GreenWorld,Norway,Oslo,12900,INV-20240141,Recyclable Materials,No fraud
-MegaTransport,Japan,Osaka,SpeedLogistics,South Korea,Busan,5600,PAY-20240142,Freight Shipping,No fraud
+RetailHub,Canada,Vancouver,ShopFast,USA,San Francisco,8900,INV-20240139,E-commerce Services,No Fraud
+TransGlobal,France,Marseille,LogiFast,Spain,Madrid,3700,PAY-20240140,International Shipping,No Fraud
+EcoTrade,Denmark,Copenhagen,GreenWorld,Norway,Oslo,12900,INV-20240141,Recyclable Materials,No Fraud
+MegaTransport,Japan,Osaka,SpeedLogistics,South Korea,Busan,5600,PAY-20240142,Freight Shipping,No Fraud
 CryptoElite,USA,San Francisco,WealthSecure,Switzerland,Zug,980000,TXN-20240143,High-Risk Crypto Investment,Fraud
-TechLab,France,Toulouse,InnovateHub,Germany,Berlin,14300,INV-20240144,R&D Services,No fraud
+TechLab,France,Toulouse,InnovateHub,Germany,Berlin,14300,INV-20240144,R&D Services,No Fraud
 LuxuryRealty,UAE,Dubai,PrimeEstates,UK,London,450000,PAY-20240145,Real Estate Investment,Fraud
-TradeBoost,India,Bangalore,GlobalExports,China,Beijing,27800,INV-20240146,International Trade,No fraud
+TradeBoost,India,Bangalore,GlobalExports,China,Beijing,27800,INV-20240146,International Trade,No Fraud
 SecureFunds,USA,New York,OffshoreBank,Cayman Islands,George Town,920000,TXN-20240147,Tax Evasion,Fraud
-FoodMarket,Brazil,Salvador,NaturalFoods,Argentina,Buenos Aires,15400,PAY-20240148,Organic Food Supply,No fraud
-BlueSteel,Germany,Hamburg,HeavyMachinery,Italy,Torino,36200,INV-20240149,Steel Supply,No fraud
-AIResearch,UK,Oxford,DeepMind,USA,San Francisco,18900,PAY-20240150,AI Development,No fraud
+FoodMarket,Brazil,Salvador,NaturalFoods,Argentina,Buenos Aires,15400,PAY-20240148,Organic Food Supply,No Fraud
+BlueSteel,Germany,Hamburg,HeavyMachinery,Italy,Torino,36200,INV-20240149,Steel Supply,No Fraud
+AIResearch,UK,Oxford,DeepMind,USA,San Francisco,18900,PAY-20240150,AI Development,No Fraud
