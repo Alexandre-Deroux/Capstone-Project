@@ -11,6 +11,8 @@ from llama_cpp import Llama
 
 # Configuration
 OPENCORPORATES_API_KEY = "wg8GiGuUTwNfRN90Qmwq"
+OPENSANCTIONS_API_KEY = "ae47a6e429340b312bb752205031da77"
+NEWS_API_KEY = "4bc3b879ee624f939ec5e7f1c38451ef"
 
 # Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
 COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
@@ -116,13 +118,13 @@ def companies_to_dataframe(api_results):
             "Company Type": company.get("company_type"),
             "Status": company.get("current_status"),
             "Address": company.get("registered_address_in_full"),
-            "Previous Names": ", ".join(
+            "Previous Names": "; ".join(
                 [
                     f"{pn.get('company_name', 'Unknown Name')} (from {pn.get('start_date', 'Unknown')} to {pn.get('end_date', 'Unknown')})"
                     for pn in company.get("previous_names", [])
                 ]
             ),
-            "Industry Descriptions": ", ".join(
+            "Industry Descriptions": "; ".join(
                 [
                     f"{ic['industry_code'].get('description', 'Unknown')} ({ic['industry_code'].get('code', 'N/A')})"
                     for ic in company.get("industry_codes", [])
@@ -138,6 +140,26 @@ def companies_to_dataframe(api_results):
     df = df.T
 
     return df
+
+def check_sanctions(entity_type, name):
+    """
+    Queries OpenSanctions API to check if a person or company is sanctioned, with score > 0.70.
+    """
+    session = requests.Session()
+    session.headers["Authorization"] = f"ApiKey {OPENSANCTIONS_API_KEY}"
+    query = {"schema": entity_type, "properties": {"name": [name]}}
+    batch = {"queries": {"q1": query}}
+
+    try:
+        response = session.post("https://api.opensanctions.org/match/sanctions?algorithm=best", json=batch)
+        response.raise_for_status()
+        responses = response.json().get("responses", {})
+        results = responses.get("q1", {}).get("results", [])
+        high_confidence_results = [res for res in results if res.get("score", 0) > 0.70]
+        return high_confidence_results
+    except requests.exceptions.RequestException as e:
+        st.error(f"❌ OpenSanctions API Error: {e}")
+        return None
 
 def company_to_dataframe(api_results):
     """
@@ -157,10 +179,26 @@ def company_to_dataframe(api_results):
     def format_list(data_list, key_name):
         """Formats a list of dictionaries into a readable string."""
         if isinstance(data_list, list):
-            return ", ".join(
+            return "; ".join(
                 [f"{item.get(key_name, 'Unknown')}" for item in data_list if isinstance(item, dict)]
             )
         return "Not Available"
+
+    # Check sanctions
+    sanctions = {"company": None, "officers": {}}
+    company_sanctions = check_sanctions("Company", company_name)
+    sanctioned_company = "No Sanctions" if not company_sanctions else "Sanctioned"
+    sanctions["company"] = company_sanctions
+    officers_list = [
+        officer["officer"]["name"] for officer in company.get("officers", []) if "officer" in officer
+    ]
+    sanctioned_officers = []
+    for officer in officers_list:
+        officer_sanctions = check_sanctions("Person", officer)
+        if officer_sanctions:
+            sanctioned_officers.append(f"{officer}: Sanctioned")
+        sanctions["officers"][officer] = officer_sanctions
+    sanctioned_officers_display = "; ".join(sanctioned_officers) if sanctioned_officers else "No Sanctions" if officers_list else ""
 
     # Store company details in a dictionary format
     company_dict = {
@@ -178,10 +216,12 @@ def company_to_dataframe(api_results):
             [ic["industry_code"] for ic in company.get("industry_codes", []) if "industry_code" in ic],
             "description"
         ),
+        "Sanctioned Company": sanctioned_company,
         "Officers": format_list(
             [officer["officer"] for officer in company.get("officers", []) if "officer" in officer],
             "name"
         ),
+        "Sanctioned Officers": sanctioned_officers_display,
         "Recent Filings": format_list(
             [f["filing"] for f in company.get("filings", []) if "filing" in f],
             "title"
@@ -197,23 +237,108 @@ def company_to_dataframe(api_results):
     df = df.replace({"": None}).dropna(axis=1, how="all")
     df = df.T
 
-    return df
+    return df, sanctions
+
+def display_sanctions_results(sanctions):
+    """
+    Displays sanctions results in the Streamlit UI.
+    """
+    # Check company sanctions
+    company_sanctions = sanctions.get("company", None)
+    if not company_sanctions:
+        st.markdown(
+            """
+            <div style="background-color: #d4edda; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                ✅ <b>The company is not sanctioned.</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <div style="background-color: #f8d7da; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                ⚠️ <b>The company is sanctioned!</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        for sanction in company_sanctions:
+            sanctioned_name = sanction.get("caption", "Unknown")
+            topics = "; ".join(sanction.get("properties", {}).get("topics", ["Unknown"]))
+            datasets = "; ".join(sanction.get("datasets", ["Unknown"]))
+            source_links = sanction.get("properties", {}).get("sourceUrl", [])
+
+            st.markdown(
+                f"""
+                <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <p style="margin: 5px 0;">📌 <b>Match found:</b> {sanctioned_name}</p>
+                    <p style="margin: 5px 0;">📂 <b>Sanction topics:</b> {topics.capitalize()}</p>
+                    <p style="margin: 5px 0;">📜 <b>Sanctions list:</b> {datasets}</p>
+                    {"".join(f'<p style="margin: 5px 0;"><a href="{source_link}" target="_blank" style="color: #0078ff; text-decoration: none;">🔗 View source</a></p>' for source_link in source_links) if source_links else ""}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    # Check officer sanctions
+    sanctioned_officers = {officer: details for officer, details in sanctions.get("officers", {}).items() if details}
+    if not sanctioned_officers:
+        st.markdown(
+            """
+            <div style="background-color: #d4edda; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                ✅ <b>No officers are sanctioned.</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        for officer, officer_sanctions in sanctioned_officers.items():
+            st.markdown(
+                f"""
+                <div style="background-color: #f8d7da; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    👤 <b>{officer} is sanctioned!</b>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            for sanction in officer_sanctions:
+                sanctioned_name = sanction.get("caption", "Unknown")
+                topics = "; ".join(sanction.get("properties", {}).get("topics", ["Unknown"]))
+                datasets = "; ".join(sanction.get("datasets", ["Unknown"]))
+                source_links = sanction.get("properties", {}).get("sourceUrl", [])
+
+                st.markdown(
+                    f"""
+                    <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <p style="margin: 5px 0;">📌 <b>Match found:</b> {sanctioned_name}</p>
+                        <p style="margin: 5px 0;">📂 <b>Sanction topics:</b> {topics.capitalize()}</p>
+                        <p style="margin: 5px 0;">📜 <b>Sanctions list:</b> {datasets}</p>
+                        {"".join(f'<p style="margin: 5px 0;"><a href="{source_link}" target="_blank" style="color: #0078ff; text-decoration: none;">🔗 View source</a></p>' for source_link in source_links) if source_links else ""}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
 def get_sentiment(text):
-    """Calculate the sentiment score of a given text."""
+    """
+    Calculate the sentiment score of a given text.
+    """
     score = sia.polarity_scores(text)
     return score['compound'] # Score ranges from -1 (negative) to 1 (positive)
 
 def contains_fraud_keywords(text):
-    """Check if the article contains any fraud-related keywords."""
+    """
+    Check if the article contains any fraud-related keywords.
+    """
     return any(keyword in text.lower() for keyword in FRAUD_KEYWORDS)
 
-def fetch_fraudulent_news(query, days=30):
+def fetch_adverse_news(query, days=30):
     """
     Fetch news articles related to the given query from the past specified days, filter those discussing fraud or money laundering with a negative sentiment.
     """
     date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
-    url = f"https://newsapi.org/v2/everything?q={query}&from={date}&sortBy=popularity&apiKey=4bc3b879ee624f939ec5e7f1c38451ef"
+    url = f"https://newsapi.org/v2/everything?q={query}&from={date}&sortBy=popularity&apiKey={NEWS_API_KEY}"
 
     response = requests.get(url)
 
@@ -272,7 +397,7 @@ def fetch_fraudulent_news(query, days=30):
             unsafe_allow_html=True
         )
     else:
-        st.info("ℹ️ No fraudulent news found.")
+        st.info("ℹ️ No adverse news found.")
 
     return filtered_articles
 
@@ -296,14 +421,15 @@ def company_search_section(role):
         with st.spinner("Retrieving data..."):
             companies_results = search_companies(query=query, country=country, address=address)
             if companies_results:
-                company_df = companies_to_dataframe(companies_results)
-                st.session_state[f"{role}_company_df"] = company_df
+                companies_df = companies_to_dataframe(companies_results)
+                st.session_state[f"{role}_companies_df"] = companies_df
                 st.session_state[f"{role}_company_index"] = 0
-                st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[0] if not company_df.empty else None
+                st.session_state[f"{role}_company_url"] = companies_df["OpenCorporates URL"].iloc[0] if not companies_df.empty else None
                 st.session_state[f"{role}_company_results"] = None
+                st.session_state[f"{role}_company_df"] = None
                 st.session_state[f"{role}_selected_name"] = None
             else:
-                st.session_state[f"{role}_company_df"] = None
+                st.session_state[f"{role}_companies_df"] = None
                 st.session_state[f"{role}_company_index"] = None
 
 # Function for displaying a company's results
@@ -311,22 +437,23 @@ def company_results_section(role):
     """
     Displays search results for a company (Sender/Recipient).
     """
-    if st.session_state.get(f"{role}_company_df") is not None:
-        company_df = st.session_state[f"{role}_company_df"]
-        company_dataframe = company_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
+    if st.session_state.get(f"{role}_companies_df") is not None:
+        companies_df = st.session_state[f"{role}_companies_df"]
+        company_dataframe = companies_df.drop(columns=["Registration Number", "OpenCorporates URL"], errors="ignore")
 
-        if not company_df.empty:
+        if not companies_df.empty:
             st.dataframe(company_dataframe, use_container_width=True)
 
             # Company selection
-            company_options = [f"{i + 1} - {name}" for i, name in enumerate(company_df.index)]
+            company_options = [f"{i + 1} - {name}" for i, name in enumerate(companies_df.index)]
             selected_company = st.selectbox(f"🏢 Select the {role} Company:", company_options, index=st.session_state[f"{role}_company_index"], key=f"{role}_select")
             new_index = int(selected_company.split(" - ", 1)[0]) - 1
 
             if new_index != st.session_state[f"{role}_company_index"]:
                 st.session_state[f"{role}_company_index"] = new_index
-                st.session_state[f"{role}_company_url"] = company_df["OpenCorporates URL"].iloc[new_index]
+                st.session_state[f"{role}_company_url"] = companies_df["OpenCorporates URL"].iloc[new_index]
                 st.session_state[f"{role}_company_results"] = None
+                st.session_state[f"{role}_company_df"] = None
                 st.session_state[f"{role}_selected_name"] = None
 
             # Retrieve company information
@@ -343,38 +470,41 @@ def company_results_section(role):
 # Function for displaying company details + fraud search
 def company_details_section(role):
     """
-    Displays a company's details and allows you to search for fraudulent information.
+    Displays a company's details and allows you to search for adverse information.
     """
     if st.session_state.get(f"{role}_company_results"):
         company_results = st.session_state[f"{role}_company_results"]
-        df = company_to_dataframe(company_results)
+        df, sanctions = company_to_dataframe(company_results)
 
         if not df.empty:
+            st.session_state[f"{role}_company_df"] = df
             st.dataframe(df, use_container_width=True)
+            if st.button(f"📋 Display {role} Sanctions Results", key=f"{role}_sanctions"):
+                with st.spinner("Retrieving data..."):
+                    display_sanctions_results(sanctions)
 
             # Name selection
             company_name = df.columns[0]
             officers = df.loc["Officers"].values[0] if "Officers" in df.index else ""
-            search_options = [company_name] + officers.split(", ") if officers else [company_name]
+            search_options = [company_name] + [officer for officer in officers.split("; ")] if officers else [company_name]
             saved_name = st.session_state.get(f"{role}_selected_name", search_options[0])
             if saved_name not in search_options:
                 saved_name = search_options[0]
             selected_name = st.selectbox(f"🔍 Select a {role} Name:", search_options, index=search_options.index(saved_name), key=f"{role}_name_select")
             st.session_state[f"{role}_selected_name"] = selected_name
 
-            # Search for fraudulent items
-            if st.button(f"📰 Fetch {role} Fraudulent News", key=f"{role}_news"):
+            # Search for adverse items
+            if st.button(f"📰 Fetch {role} Adverse News", key=f"{role}_news"):
                 with st.spinner("Retrieving data..."):
-                    fetch_fraudulent_news(selected_name)
+                    fetch_adverse_news(selected_name)
         else:
             st.info(f"ℹ️ No results found for {role}.")
 
 # Function for extracting company information in text form
 def extract_company_info(role):
-    if st.session_state.get(f"{role}_company_results"):
-        df = company_to_dataframe(st.session_state[f"{role}_company_results"])
-        if not df.empty:
-            return df.to_string(index=True)
+    df = st.session_state.get(f"{role}_company_df", None)
+    if df is not None and not df.empty:
+        return df.to_string(index=True)
     return "No information available."
 
 # Function to generate the LLM prompt
@@ -432,4 +562,11 @@ if st.session_state.get("Sender_company_results") and st.session_state.get("Reci
         with st.spinner("Analysing money laundering risk..."):
             risk_analysis_result = analyse_aml_risk(sender_info, recipient_info)
             st.subheader("📋 Risk Analysis Result")
-            st.write(risk_analysis_result)
+            st.markdown(
+                f"""
+                <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                    <p style="margin: 5px 0;">{risk_analysis_result}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
