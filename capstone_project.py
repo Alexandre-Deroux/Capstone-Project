@@ -508,7 +508,7 @@ def extract_company_info(role):
     return "No information available."
 
 # Function to generate the LLM prompt
-def generate_risk_analysis_prompt(sender_info, recipient_info):
+def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info):
     prompt = f"""
     You are a financial crime expert specializing in Anti-Money Laundering (AML). 
     Analyze the risk of money laundering between the following two entities based on their details:
@@ -518,6 +518,9 @@ def generate_risk_analysis_prompt(sender_info, recipient_info):
 
     📌 **Recipient Company Information**:
     {recipient_info}
+
+    📌 **Transaction Information**:
+    {transaction_info}
 
     🎯 **Task**:
     1. Assign a **risk score from 0 to 100**, where:
@@ -532,11 +535,11 @@ def generate_risk_analysis_prompt(sender_info, recipient_info):
     return prompt
 
 # Function for analyse AML risk
-def analyse_aml_risk(sender_info, recipient_info):
+def analyse_aml_risk(sender_info, recipient_info, transaction_info):
     """
     Analyse the risk of money laundering using Llama 3.2 3B Instruct with llama.cpp.
     """
-    prompt = generate_risk_analysis_prompt(sender_info, recipient_info)
+    prompt = generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
     response = llm(prompt, max_tokens=500, temperature=0.3)
     return response["choices"][0]["text"]
 
@@ -552,6 +555,14 @@ company_search_section("Recipient")
 company_results_section("Recipient")
 company_details_section("Recipient")
 
+# Transaction information
+st.header("💰 Transaction Information")
+amount = st.number_input("💵 Enter the Amount:", min_value=0.01, step=1, key="amount")
+currency = st.selectbox("💱 Select the Currency:", ["USD", "EUR", "GBP", "CHF", "JPY", "CNY", "AUD"], key="currency")
+reference = st.text_input("📜 Enter the Reference (Optional):", key="reference")
+reason = st.text_area("📝 Enter the Reason (Optional):", key="reason")
+transaction_info = {"Amount": amount, "Currency": currency, "Reference": reference, "Reason": reason}
+
 # AML risk assessment
 st.header("⚠️ AML Risk Assessment")
 if st.session_state.get("Sender_company_results") and st.session_state.get("Recipient_company_results"):
@@ -560,7 +571,7 @@ if st.session_state.get("Sender_company_results") and st.session_state.get("Reci
 
     if st.button("🛡️ Analyse AML Risk"):
         with st.spinner("Analysing money laundering risk..."):
-            risk_analysis_result = analyse_aml_risk(sender_info, recipient_info)
+            risk_analysis_result = analyse_aml_risk(sender_info, recipient_info, transaction_info)
             st.subheader("📋 Risk Analysis Result")
             st.markdown(
                 f"""
