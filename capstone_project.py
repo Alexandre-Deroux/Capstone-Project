@@ -557,7 +557,7 @@ company_details_section("Recipient")
 
 # Transaction information
 st.header("💰 Transaction Information")
-amount = st.number_input("💵 Enter the Amount:", min_value=0.01, step=1, key="amount")
+amount = st.number_input("💵 Enter the Amount:", min_value=0.01, value=1000.00, step=1.00, key="amount")
 currency = st.selectbox("💱 Select the Currency:", ["USD", "EUR", "GBP", "CHF", "JPY", "CNY", "AUD"], key="currency")
 reference = st.text_input("📜 Enter the Reference (Optional):", key="reference")
 reason = st.text_area("📝 Enter the Reason (Optional):", key="reason")
