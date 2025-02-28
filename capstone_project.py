@@ -508,29 +508,96 @@ def extract_company_info(role):
     return "No information available."
 
 # Function to generate the LLM prompt
+# def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info):
+#     prompt = f"""
+#     You are a financial crime expert specializing in Anti-Money Laundering (AML). 
+#     Analyze the risk of money laundering between the following two entities based on their details:
+
+#     📌 **Sender Company Information**:
+#     {sender_info}
+
+#     📌 **Recipient Company Information**:
+#     {recipient_info}
+
+#     📌 **Transaction Information**:
+#     {transaction_info}
+
+#     🎯 **Task**:
+#     1. Assign a **risk score from 0 to 100**, where:
+#     - 0 = No risk
+#     - 100 = Extremely high risk
+#     2. Explain the reasoning behind the score.
+#     3. Identify potential risk indicators (e.g., offshore accounts, politically exposed persons, high-risk industries).
+#     4. Suggest actions to mitigate the risk.
+
+#     Please provide a structured response with the **Risk Score** followed by an **Explanation**.
+#     """
+#     return prompt
 def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info):
     prompt = f"""
-    You are a financial crime expert specializing in Anti-Money Laundering (AML). 
-    Analyze the risk of money laundering between the following two entities based on their details:
+    You are a financial crime expert specialising in Anti-Money Laundering (AML).  
+    Analyse the risk of money laundering for the following transaction based on entity details, transaction characteristics, and risk indicators.
 
-    📌 **Sender Company Information**:
+    ---
+    ### 📌 **Step 1: Company & Transaction Information**
+    #### 🔹 **Sender Company Information:**
     {sender_info}
 
-    📌 **Recipient Company Information**:
+    #### 🔹 **Recipient Company Information:**
     {recipient_info}
 
-    📌 **Transaction Information**:
+    #### 🔹 **Transaction Information:**
     {transaction_info}
 
-    🎯 **Task**:
-    1. Assign a **risk score from 0 to 100**, where:
-    - 0 = No risk
-    - 100 = Extremely high risk
-    2. Explain the reasoning behind the score.
-    3. Identify potential risk indicators (e.g., offshore accounts, politically exposed persons, high-risk industries).
-    4. Suggest actions to mitigate the risk.
+    ---
+    ### 📌 **Step 2: Red Flags Assessment**
+    Evaluate the presence of the following high-risk attributes and quantify them on a scale of **0 (Not Present) to 5 (Highly Present)**:
+    1. **Sensitive Jurisdiction** (e.g., sanctioned countries, high-risk regions)
+    2. **Tax Haven** (e.g., offshore entities, shell companies)
+    3. **Multiple Locations** (e.g., complex multi-national structures)
+    4. **Sensitive Legal Structure** (e.g., trusts, foundations, bearer shares)
 
-    Please provide a structured response with the **Risk Score** followed by an **Explanation**.
+    **Scoring Instructions:**
+    - **0:** Not detected
+    - **1-2:** Low relevance
+    - **3-4:** Moderate relevance
+    - **5:** Highly relevant
+
+    🔍 **Provide a breakdown of these scores and justify each rating.**
+
+    ---
+    ### 📌 **Step 3: Transaction Rationale Assessment**
+    Classify the transaction under one of the following rationales:
+    1. **Client-Supplier** (e.g., commercial payment for goods/services)
+    2. **Client-FSP (Financial Service Provider)** (e.g., bank, payment institution)
+    3. **Client-PSP/MSB (Payment Service Provider/Money Service Business)**
+    4. **Client-Individual** (e.g., personal remittance, salary payment)
+    5. **Other** (Provide details)
+    6. **Not Established** (Lack of transparent justification)
+
+    🔍 **Explain how well the transaction rationale aligns with the sender/recipient profile.**
+
+    ---
+    ### 📌 **Step 4: Mitigating Factors Assessment**
+    Determine if any of the following **risk-reducing factors** are present:
+    1. **Inter-Account** (Internal transfer within the same entity)
+    2. **Intra-Group** (Transaction between entities within the same corporate group)
+    3. **G-SIFI (Globally Systemically Important Financial Institution)** (Highly regulated institution)
+
+    🔍 **If applicable, explain how these factors reduce overall risk.**
+
+    ---
+    ### 📌 **Step 5: Risk Score & Explanation**
+    Using the **company and transaction information (Step 1), quantified red flags (Step 2), transaction rationale (Step 3), and mitigating factors (Step 4)**, assign a **risk score from 0 to 100**:
+    - **0-20:** Low Risk
+    - **21-50:** Moderate Risk
+    - **51-80:** High Risk
+    - **81-100:** Critical Risk
+
+    📊 **Final Rating:** _XX/100_
+    📝 **Risk Justification:**
+    - Summarise key findings from previous steps.
+    - Highlight inconsistencies or suspicious patterns.
     """
     return prompt
 
