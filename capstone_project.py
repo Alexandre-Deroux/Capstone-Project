@@ -572,14 +572,6 @@ def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
     📝 **Risk Justification:**
     - Summarise key findings from previous steps.
     - Highlight inconsistencies or suspicious patterns.
-
-    ---
-    ### **Output Format:**
-    Provide a structured response with:
-    1. **Red Flags Scores & Explanations**
-    2. **Transaction Rationale Assessment**
-    3. **Mitigating Factors Analysis**
-    4. **Final Risk Score & Justification**
     """
     return prompt
 
