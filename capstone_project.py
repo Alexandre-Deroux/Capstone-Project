@@ -7,7 +7,9 @@ from datetime import datetime, timedelta
 from newspaper import Article
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
-from llama_cpp import Llama
+# https://ollama.com
+# 'ollama pull mistral'
+import ollama
 
 # Configuration
 OPENCORPORATES_API_KEY = "wg8GiGuUTwNfRN90Qmwq"
@@ -29,9 +31,6 @@ FRAUD_KEYWORDS = [
 # Download the VADER sentiment analysis model
 nltk.download('vader_lexicon')
 sia = SentimentIntensityAnalyzer()
-
-# Load the GGUF model
-llm = Llama(model_path="llama-3.2-3b-instruct.Q4_K_M.gguf", n_ctx=4096)
 
 def get_country_code(country_name):
     """
@@ -508,31 +507,6 @@ def extract_company_info(role):
     return "No information available."
 
 # Function to generate the LLM prompt
-# def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info):
-#     prompt = f"""
-#     You are a financial crime expert specializing in Anti-Money Laundering (AML). 
-#     Analyze the risk of money laundering between the following two entities based on their details:
-
-#     📌 **Sender Company Information**:
-#     {sender_info}
-
-#     📌 **Recipient Company Information**:
-#     {recipient_info}
-
-#     📌 **Transaction Information**:
-#     {transaction_info}
-
-#     🎯 **Task**:
-#     1. Assign a **risk score from 0 to 100**, where:
-#     - 0 = No risk
-#     - 100 = Extremely high risk
-#     2. Explain the reasoning behind the score.
-#     3. Identify potential risk indicators (e.g., offshore accounts, politically exposed persons, high-risk industries).
-#     4. Suggest actions to mitigate the risk.
-
-#     Please provide a structured response with the **Risk Score** followed by an **Explanation**.
-#     """
-#     return prompt
 def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info):
     prompt = f"""
     You are a financial crime expert specialising in Anti-Money Laundering (AML).  
@@ -598,17 +572,25 @@ def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
     📝 **Risk Justification:**
     - Summarise key findings from previous steps.
     - Highlight inconsistencies or suspicious patterns.
+
+    ---
+    ### **Output Format:**
+    Provide a structured response with:
+    1. **Red Flags Scores & Explanations**
+    2. **Transaction Rationale Assessment**
+    3. **Mitigating Factors Analysis**
+    4. **Final Risk Score & Justification**
     """
     return prompt
 
 # Function for analyse AML risk
 def analyse_aml_risk(sender_info, recipient_info, transaction_info):
     """
-    Analyse the risk of money laundering using Llama 3.2 3B Instruct with llama.cpp.
+    Analyse the risk of money laundering using Mistral 7B with Ollama.
     """
     prompt = generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
-    response = llm(prompt, max_tokens=500, temperature=0.3)
-    return response["choices"][0]["text"]
+    response = ollama.chat(model="mistral", messages=[{"role": "user", "content": prompt}])
+    return response["message"]["content"]
 
 # Sender company information
 st.header("🚀 Sender Company Information")
