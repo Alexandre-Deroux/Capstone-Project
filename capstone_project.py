@@ -619,7 +619,38 @@ company_details_section("Recipient")
 # Transaction information
 st.header("💰 Transaction Information")
 amount = st.number_input("💵 Enter the Amount:", min_value=0.01, value=1000.00, step=1.00, key="amount")
-currency = st.selectbox("💱 Select the Currency:", ["USD", "EUR", "GBP", "CHF", "JPY", "CNY", "AUD"], key="currency")
+currencies = [
+    # Major world currencies (Reserves & International trade)
+    "USD", "EUR", "CNY", "JPY", "GBP", "CHF", "AUD", "CAD", "HKD", "SGD",
+
+    # Common currencies in international financial transactions
+    "SEK", "NOK", "KRW", "NZD", "BRL", "MXN", "INR", "ZAR", "RUB",
+
+    # Regional and emerging currencies
+    "AED", "ARS", "CLP", "COP", "IDR", "MYR", "PHP", "THB", "TRY", "TWD",
+    "PLN", "HUF", "CZK", "RON", "ILS", "SAR", "QAR", "VND", "EGP",
+
+    # Other currencies (Less current)
+    "AFN", "ALL", "AMD", "ANG", "AOA", "AWG", "AZN", "BAM", "BBD", "BDT",
+    "BHD", "BIF", "BMD", "BND", "BOB", "BSD", "BTN", "BWP", "BYN", "BZD",
+    "CDF", "CUP", "CVE", "DJF", "DOP", "DZD", "ERN", "ETB", "FJD", "FKP",
+    "FOK", "GEL", "GGP", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HNL",
+    "HTG", "IMP", "IQD", "IRR", "ISK", "JEP", "JMD", "JOD", "KES", "KGS",
+    "KHR", "KID", "KMF", "KYD", "KZT", "LAK", "LBP", "LKR", "LRD", "LSL",
+    "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR",
+    "MVR", "MWK", "MZN", "NAD", "NGN", "NIO", "NPR", "OMR", "PAB", "PEN",
+    "PGK", "PKR", "PYG", "RSD", "RWF", "SBD", "SCR", "SDG", "SHP", "SLE",
+    "SOS", "SRD", "SSP", "STN", "SYP", "SZL", "TJS", "TMT", "TND", "TOP",
+    "TTD", "TVD", "TZS", "UAH", "UGX", "UYU", "UZS", "VES", "VUV", "WST",
+    "XAF", "XCD", "XDR", "XOF", "XPF", "YER", "ZMW", "ZWL",
+
+    # Cryptocurrencies (Most used)
+    "BTC", "ETH", "BNB", "USDT", "USDC", "XRP", "ADA", "SOL", "DOGE", "DOT",
+    "MATIC", "DAI", "AVAX", "SHIB", "LTC", "TRX", "ATOM", "XMR", "BCH", "ALGO",
+    "ICP", "FIL", "VET", "HBAR", "EGLD", "MKR", "XLM", "LDO", "AAVE", "GRT",
+    "FTM", "XTZ", "RUNE", "AXS"
+]
+currency = st.selectbox("💱 Select the Currency:", currencies, key="currency")
 reference = st.text_input("📜 Enter the Reference (Optional):", key="reference")
 reason = st.text_area("📝 Enter the Reason (Optional):", key="reason")
 transaction_info = {"Amount": amount, "Currency": currency, "Reference": reference, "Reason": reason}
