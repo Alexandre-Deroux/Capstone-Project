@@ -599,7 +599,6 @@ def analyse_aml_risk(sender_info, recipient_info, transaction_info):
             {"role": "system", "content": "You are a financial crime expert specialising in Anti-Money Laundering (AML). Provide a detailed analysis of the risk of money laundering."},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 500,
         "temperature": 0.3
     }
     response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
