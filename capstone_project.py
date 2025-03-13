@@ -596,10 +596,6 @@ def analyse_aml_risk(sender_info, recipient_info, transaction_info):
     data = {
         "model": "mistralai/mistral-7b-instruct:free",
         "messages": [
-            {"role": "system", "content": "Tu es un assistant IA avancé."},
-            {"role": "user", "content": "Peux-tu m'expliquer le fonctionnement de DeepSeek R1 ?"}
-        ],
-        "messages": [
             {"role": "system", "content": "You are a financial crime expert specialising in Anti-Money Laundering (AML). Provide a detailed analysis of the risk of money laundering."},
             {"role": "user", "content": prompt}
         ],
