@@ -7,14 +7,12 @@ from datetime import datetime, timedelta
 from newspaper import Article
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
-# https://ollama.com
-# 'ollama pull mistral'
-import ollama
 
 # Configuration
 OPENCORPORATES_API_KEY = "wg8GiGuUTwNfRN90Qmwq"
 OPENSANCTIONS_API_KEY = "ae47a6e429340b312bb752205031da77"
 NEWS_API_KEY = "4bc3b879ee624f939ec5e7f1c38451ef"
+OPENROUTER_API_KEY = "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"
 
 # Prepare a dictionary of countries with their ISO 3166-1 alpha-2 codes
 COUNTRIES = {country.name: country.alpha_2.lower() for country in pycountry.countries}
@@ -572,17 +570,44 @@ def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
     📝 **Risk Justification:**
     - Summarise key findings from previous steps.
     - Highlight inconsistencies or suspicious patterns.
+
+    ---
+    ### **Output Format:**
+    Provide a structured response with:
+    1. **Red Flags Scores & Explanations**
+    2. **Transaction Rationale Assessment**
+    3. **Mitigating Factors Analysis**
+    4. **Final Risk Score & Justification**
+
+    This structured approach ensures a **data-driven AML risk assessment**.
     """
     return prompt
 
 # Function for analyse AML risk
 def analyse_aml_risk(sender_info, recipient_info, transaction_info):
     """
-    Analyse the risk of money laundering using Mistral 7B with Ollama.
+    Analyse the risk of money laundering using Mistral 7B Instruct with OpenRouter.
     """
     prompt = generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
-    response = ollama.chat(model="mistral", messages=[{"role": "user", "content": prompt}])
-    return response["message"]["content"]
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "mistralai/mistral-7b-instruct:free",
+        "messages": [
+            {"role": "system", "content": "Tu es un assistant IA avancé."},
+            {"role": "user", "content": "Peux-tu m'expliquer le fonctionnement de DeepSeek R1 ?"}
+        ],
+        "messages": [
+            {"role": "system", "content": "You are a financial crime expert specialising in Anti-Money Laundering (AML). Provide a detailed analysis of the risk of money laundering."},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 500,
+        "temperature": 0.3
+    }
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+    return response.json()["choices"][0]["message"]["content"]
 
 # Sender company information
 st.header("🚀 Sender Company Information")
