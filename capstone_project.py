@@ -181,6 +181,15 @@ def company_to_dataframe(api_results):
             )
         return "Not Available"
 
+    # Extraction of LEI
+    lei = None
+    identifiers = safe_get(company, "identifiers", [])
+    for item in identifiers:
+        identifier = safe_get(item, "identifier", {})
+        if safe_get(identifier, "identifier_system_code") == "lei":
+            lei = safe_get(identifier, "uid")
+            break
+
     # Check sanctions
     sanctions = {"company": None, "officers": {}}
     company_sanctions = check_sanctions("Company", company_name)
@@ -199,6 +208,7 @@ def company_to_dataframe(api_results):
 
     # Store company details in a dictionary format
     company_dict = {
+        "LEI": lei,
         "Registration Number": safe_get(company, "company_number"),
         "Jurisdiction": safe_get(company, "jurisdiction_code", "").upper(),
         "Incorporation Date": safe_get(company, "incorporation_date"),
@@ -586,7 +596,7 @@ def generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
 # Function for analyse AML risk
 def analyse_aml_risk(sender_info, recipient_info, transaction_info):
     """
-    Analyse the risk of money laundering using Mistral 7B Instruct with OpenRouter.
+    Analyse the risk of money laundering using DeepSeek R1 with OpenRouter.
     """
     prompt = generate_risk_analysis_prompt(sender_info, recipient_info, transaction_info)
     headers = {
@@ -594,7 +604,7 @@ def analyse_aml_risk(sender_info, recipient_info, transaction_info):
         "Content-Type": "application/json"
     }
     data = {
-        "model": "mistralai/mistral-7b-instruct:free",
+        "model": "deepseek/deepseek-r1:free",
         "messages": [
             {"role": "system", "content": "You are a financial crime expert specialising in Anti-Money Laundering (AML). Provide a detailed analysis of the risk of money laundering."},
             {"role": "user", "content": prompt}
