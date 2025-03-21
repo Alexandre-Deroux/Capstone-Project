@@ -1,0 +1,51 @@
+sender,sender_country,sender_address,recipient,recipient_country,recipient_address,amount,currency,reference,reason,fraud
+TechCorp Ltd,USA,New York,GlobalTrade Inc,UK,London,15000,USD,INV-1001,Payment for services,No Fraud
+FinSolutions GmbH,Germany,Berlin,AsiaTrade Co.,Hong Kong,,250000,EUR,INV-2023,Investment transfer,Fraud
+SwissBank AG,Switzerland,Zurich,Offshore Holdings Ltd,Bahamas,Nassau,500000,CHF,INV-3304,Private investment,Fraud
+GreenEnergy Ltd,Canada,Toronto,EnergyWorld SA,France,Paris,75000,CAD,INV-4508,Equipment purchase,No Fraud
+CryptoExchange LLC,USA,Miami,SecureVault Ltd,Cayman Islands,George Town,200000,BTC,INV-7789,Digital asset transfer,Fraud
+AutoParts Inc,Mexico,Mexico City,Mechano Ltd,USA,Los Angeles,32500,MXN,INV-5556,Auto parts shipment,No Fraud
+EuroTech SA,France,Paris,TechSolutions Ltd,UK,Manchester,125000,EUR,INV-8907,Software license,No Fraud
+LuxFinance SARL,Luxembourg,,PrivateWealth Holdings,Panama,Panama City,300000,USD,INV-2145,Trust fund deposit,Fraud
+AsianMarket Ltd,China,Shanghai,GlobalRetail Inc,USA,New York,78000,CNY,INV-6677,Consumer goods shipment,No Fraud
+Gulf Petrochem FZC,UAE,Dubai,OilTrade Corp,Russia,Moscow,950000,USD,INV-9988,Crude oil transaction,Fraud
+InnovateX Pte Ltd,Singapore,,TechnoHub Ltd,USA,San Francisco,50000,SGD,INV-3232,R&D collaboration,No Fraud
+CaribbeanInvest Ltd,Bahamas,Nassau,WealthTrust Corp,British Virgin Islands,Tortola,1200000,USD,INV-9999,Investment portfolio,Fraud
+LatinTrade SAC,Peru,Lima,Exporters Ltd,Chile,Santiago,45000,PEN,INV-1234,Export payment,No Fraud
+NordicBank AB,Sweden,Stockholm,SafeHaven Holdings,Cyprus,Nicosia,600000,SEK,INV-4321,Wealth management,Fraud
+MegaPharma SA,Brazil,São Paulo,MedicalTech Ltd,USA,Boston,132000,BRL,INV-7777,Pharmaceutical supplies,No Fraud
+SecureFunds Ltd,UK,London,TrustCapital SA,Switzerland,Geneva,275000,GBP,INV-8523,Asset management,Fraud
+WestAfrican Gold Ltd,Ghana,Accra,PreciousMetals Trading,South Africa,Johannesburg,350000,USD,INV-9632,Gold export,Fraud
+EastAsia Shipping Co.,South Korea,Busan,LogisticsWorld Ltd,Germany,Hamburg,84500,KRW,INV-5555,Freight service,No Fraud
+MiddleEast Finance,UAE,Abu Dhabi,SafeWealth Ltd,Lebanon,Beirut,1000000,USD,INV-6543,Wealth transfer,Fraud
+FinTech Solutions,Canada,Montreal,DigitalBanking Ltd,USA,New York,90000,CAD,INV-7890,IT services,No Fraud
+SmartRetail GmbH,Germany,Berlin,FutureCommerce Ltd,Netherlands,Amsterdam,120000,EUR,INV-1010,E-commerce expansion,No Fraud
+OffshoreTrust Ltd,British Virgin Islands,Tortola,WealthManagement Corp,Seychelles,Victoria,850000,USD,INV-2222,Financial structuring,Fraud
+LuxuryGoods Ltd,France,Paris,EliteShopping Inc,USA,Los Angeles,200000,EUR,INV-3333,Luxury item trade,No Fraud
+Pacific Oil & Gas,Australia,Sydney,EnergyCorp Ltd,Malaysia,Kuala Lumpur,675000,AUD,INV-4444,Energy supply,Fraud
+VenTech Inc,USA,San Francisco,AlphaInvest Ltd,Cayman Islands,George Town,500000,USD,INV-5555,Venture capital fund,Fraud
+SouthAmerican Exporters,Argentina,Buenos Aires,TradeZone Ltd,Peru,Lima,38000,ARS,INV-6666,Export payment,No Fraud
+SecureWealth SA,Switzerland,Geneva,PrivateAssets Ltd,Monaco,,950000,CHF,INV-7777,Private banking,Fraud
+HighTech Ltd,Japan,Tokyo,Innovators Inc,USA,Seattle,110000,JPY,INV-8888,Technology development,No Fraud
+CryptoFinance Corp,Estonia,Tallinn,DigitalAssets Ltd,British Virgin Islands,Tortola,480000,BTC,INV-9999,Crypto asset transfer,Fraud
+AgriTrade Ltd,Brazil,Brasilia,FoodSupply Inc,Mexico,Mexico City,67000,BRL,INV-1122,Agricultural products,No Fraud
+WestEurope Logistics,Spain,Madrid,GlobalTransport Ltd,France,Paris,89000,EUR,INV-2233,Logistics service,No Fraud
+MiddleEast Oil Ltd,UAE,Dubai,PetroTrade Inc,Turkey,Istanbul,900000,USD,INV-3344,Oil shipment,Fraud
+DigitalPayments Ltd,USA,New York,SecureBank SA,Switzerland,Geneva,250000,USD,INV-4455,Payment processing,No Fraud
+TradeFinance Ltd,Singapore,,WealthFund Holdings,Panama,Panama City,600000,SGD,INV-5566,Investment fund transfer,Fraud
+LuxuryYachts Inc,Monaco,,EliteBoats Ltd,Italy,Genoa,1750000,EUR,INV-6677,Yacht sale,No Fraud
+Asian Petrochemicals,India,Mumbai,EnergyWorld Ltd,China,Beijing,720000,INR,INV-7788,Petrochemical supply,Fraud
+WealthManagement Ltd,Switzerland,Geneva,TrustCapital Holdings,Bahamas,Nassau,950000,CHF,INV-8899,Private trust fund,Fraud
+GlobalRetail Inc,USA,New York,EuroCommerce Ltd,Germany,Berlin,89000,USD,INV-9900,Retail goods,No Fraud
+TechInvest Ltd,Canada,Toronto,InnovationFund Inc,USA,San Francisco,230000,CAD,INV-1111,Startup investment,No Fraud
+OffshoreBank Ltd,Cayman Islands,George Town,TrustWealth Holdings,Seychelles,Victoria,1200000,USD,INV-2222,Asset protection,Fraud
+SecurePayments AG,Switzerland,Zurich,GlobalBank Ltd,UK,London,450000,CHF,INV-3333,Financial services,No Fraud
+ImportExport Ltd,Italy,Rome,AsianTrade Corp,Hong Kong,,67000,EUR,INV-4444,Import-export,No Fraud
+CryptoWealth Ltd,Malta,Valletta,DigitalAssets Inc,Singapore,,850000,BTC,INV-5555,Crypto exchange,Fraud
+MiddleEast Investments,UAE,Dubai,PrivateBank Ltd,Switzerland,Geneva,1250000,USD,INV-6666,Wealth management,Fraud
+EuroBank SA,France,Paris,GlobalFinance Ltd,Germany,Frankfurt,375000,EUR,INV-7777,Interbank transfer,No Fraud
+EasternMining Ltd,Russia,Moscow,GoldTrade Inc,Switzerland,Zurich,880000,USD,INV-8881,Precious metals,Fraud
+GreenAgro Ltd,Netherlands,Amsterdam,OrganicFoods Inc,Germany,Berlin,72000,EUR,INV-9023,Agricultural goods,No Fraud
+WealthTrust Ltd,British Virgin Islands,Tortola,PrivateBank SA,Switzerland,Geneva,950000,USD,INV-7765,Wealth structuring,Fraud
+SolarPower GmbH,Germany,Frankfurt,RenewableEnergy Ltd,Spain,Madrid,150000,EUR,INV-1112,Solar equipment,No Fraud
+CryptoTrade Inc,Singapore,,Blockchain Holdings,Bahamas,Nassau,600000,BTC,INV-3322,Crypto asset transfer,Fraud
