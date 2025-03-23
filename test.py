@@ -54,7 +54,7 @@ for _, row in tqdm(df.iterrows(), total=len(df), desc="Test processing", unit="t
             outputs.append(risk_analysis_result)
             break
 
-    # Extract the score and determine if it is fraud
+    # Extract the score
     score = extract_score(risk_analysis_result)
     scores.append(score)
 
@@ -88,5 +88,5 @@ correct_predictions = sum(df["fraud"] == df["predicted_fraud"])
 total_predictions = len(df)
 accuracy = (correct_predictions / total_predictions) * 100
 
-# Display results
+# Display the accuracy score
 print(f"\nAccuracy score: {accuracy:.2f}% ({correct_predictions}/{total_predictions})")
