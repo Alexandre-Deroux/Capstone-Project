@@ -29,7 +29,7 @@ FRAUD_KEYWORDS = [
 ]
 
 # Download the VADER sentiment analysis model
-nltk.download('vader_lexicon')
+nltk.download("vader_lexicon")
 sia = SentimentIntensityAnalyzer()
 
 def get_country_code(country_name):
@@ -65,7 +65,7 @@ def search_companies(query, country=None, address=None):
         "q": query,
         "country_code": country_code,
         "registered_address": address,
-        "order": 'score',
+        "order": "score",
         "api_token": OPENCORPORATES_API_KEY
     }
 
@@ -119,13 +119,13 @@ def companies_to_dataframe(api_results):
             "Address": company.get("registered_address_in_full"),
             "Previous Names": "; ".join(
                 [
-                    f"{pn.get('company_name', 'Unknown Name')} (from {pn.get('start_date', 'Unknown')} to {pn.get('end_date', 'Unknown')})"
+                    f"{pn.get("company_name", "Unknown Name")} (from {pn.get("start_date", "Unknown")} to {pn.get("end_date", "Unknown")})"
                     for pn in company.get("previous_names", [])
                 ]
             ),
             "Industry Descriptions": "; ".join(
                 [
-                    f"{ic['industry_code'].get('description', 'Unknown')} ({ic['industry_code'].get('code', 'N/A')})"
+                    f"{ic["industry_code"].get("description", "Unknown")} ({ic["industry_code"].get("code", "N/A")})"
                     for ic in company.get("industry_codes", [])
                     if "industry_code" in ic
                 ]
@@ -239,7 +239,7 @@ def company_to_dataframe(api_results):
         """Formats a list of dictionaries into a readable string."""
         if isinstance(data_list, list):
             return "; ".join(
-                [f"{item.get(key_name, 'Unknown')}" for item in data_list if isinstance(item, dict)]
+                [f"{item.get(key_name, "Unknown")}" for item in data_list if isinstance(item, dict)]
             )
         return "Not Available"
 
@@ -329,18 +329,18 @@ def create_analysis_graph(df):
     company_name = df.columns[0]
     company_name_tooltip_list = []
     if "LEI" in df.index:
-        company_name_tooltip_list.append(f'LEI: {df.loc["LEI"].iloc[0]}')
-    company_name_tooltip_list.append(f'Registration Number: {df.loc["Registration Number"].iloc[0]}')
+        company_name_tooltip_list.append(f"LEI: {df.loc["LEI"].iloc[0]}")
+    company_name_tooltip_list.append(f"Registration Number: {df.loc["Registration Number"].iloc[0]}")
     if "Incorporation Date" in df.index:
-        company_name_tooltip_list.append(f'Incorporation Date: {df.loc['Incorporation Date'].iloc[0]}')
+        company_name_tooltip_list.append(f"Incorporation Date: {df.loc["Incorporation Date"].iloc[0]}")
     if "Dissolution Date" in df.index:
-        company_name_tooltip_list.append(f'Dissolution Date: {df.loc['Dissolution Date'].iloc[0]}')
+        company_name_tooltip_list.append(f"Dissolution Date: {df.loc["Dissolution Date"].iloc[0]}")
     if "Status" in df.index:
-        company_name_tooltip_list.append(f'Status: {df.loc["Status"].iloc[0]}')
+        company_name_tooltip_list.append(f"Status: {df.loc["Status"].iloc[0]}")
     company_name_tooltip = "; ".join(company_name_tooltip_list)
 
     # Add company name
-    net.add_node(company_name_id, label=company_name, shape="ellipse", title=company_name_tooltip, borderWidth=3, size=40, font={'size': 20}, color={"border": "blue", "background": "white"})
+    net.add_node(company_name_id, label=company_name, shape="ellipse", title=company_name_tooltip, borderWidth=3, size=40, font={"size": 20}, color={"border": "blue", "background": "white"})
 
     # Add jurisdiction
     if "Jurisdiction" in df.index:
@@ -348,21 +348,21 @@ def create_analysis_graph(df):
         country = pycountry.countries.get(alpha_2=jurisdiction_code.split("_")[0].upper())
         jurisdiction = country.name if country else jurisdiction_code
         jurisdiction_id = f"Jurisdiction_{jurisdiction}"
-        net.add_node(jurisdiction_id, label=jurisdiction, shape="box", title="Jurisdiction", borderWidth=2, size=30, font={'size': 15}, color={"border": "lightgrey"})
+        net.add_node(jurisdiction_id, label=jurisdiction, shape="box", title="Jurisdiction", borderWidth=2, size=30, font={"size": 15}, color={"border": "lightgrey"})
         net.add_edge(company_name_id, jurisdiction_id, color="lightgrey", title="Jurisdiction")
 
     # Add company type
     if "Company Type" in df.index:
         company_type = df.loc["Company Type"].iloc[0]
         company_type_id = f"Company_Type_{company_type}"
-        net.add_node(company_type_id, label=company_type, shape="box", title="Company Type", borderWidth=2, size=30, font={'size': 15}, color={"border": "lightgrey"})
+        net.add_node(company_type_id, label=company_type, shape="box", title="Company Type", borderWidth=2, size=30, font={"size": 15}, color={"border": "lightgrey"})
         net.add_edge(company_name_id, company_type_id, color="lightgrey", title="Company Type")
 
     # Add registered address
     if "Registered Address" in df.index:
         registered_address = df.loc["Registered Address"].iloc[0]
         registered_address_id = f"Registered_Address_{registered_address}"
-        net.add_node(registered_address_id, label=registered_address, shape="box", title="Registered Address", borderWidth=2, size=30, font={'size': 15}, color={"border": "lightgrey"})
+        net.add_node(registered_address_id, label=registered_address, shape="box", title="Registered Address", borderWidth=2, size=30, font={"size": 15}, color={"border": "lightgrey"})
         net.add_edge(company_name_id, registered_address_id, color="lightgrey", title="Registered Address")
 
     # Add BIC
@@ -370,14 +370,14 @@ def create_analysis_graph(df):
         bic_list = df.loc["BIC"].iloc[0].split("; ")
         for bic in bic_list:
             bic_id = f"BIC_{bic}"
-            net.add_node(bic_id, label=bic, shape="diamond", title="BIC", borderWidth=2, size=15, font={'size': 10}, color={"border": "purple"})
+            net.add_node(bic_id, label=bic, shape="diamond", title="BIC", borderWidth=2, size=15, font={"size": 10}, color={"border": "purple"})
             net.add_edge(company_name_id, bic_id, color="purple", title="BIC")
 
     # Add parent
     if "Parent Name" in df.index and "Parent LEI" in df.index:
         parent_name = df.loc["Parent Name"].iloc[0]
         parent_lei = df.loc["Parent LEI"].iloc[0]
-        net.add_node(parent_lei, label=parent_name, shape="ellipse", title=f"Parent (LEI: {parent_lei})", borderWidth=2, size=35, font={'size': 18}, color={"border": "red"})
+        net.add_node(parent_lei, label=parent_name, shape="ellipse", title=f"Parent (LEI: {parent_lei})", borderWidth=2, size=35, font={"size": 18}, color={"border": "red"})
         net.add_edge(parent_lei, company_name_id, color="red", title=f"Parent (LEI: {parent_lei})")
 
     # Add children
@@ -385,7 +385,7 @@ def create_analysis_graph(df):
         children_names = df.loc["Children Names"].iloc[0].split("; ")
         children_leis = df.loc["Children LEIs"].iloc[0].split("; ")
         for child_name, child_lei in zip(children_names, children_leis):
-            net.add_node(child_lei, label=child_name, shape="ellipse", title=f"Child (LEI: {child_lei})", borderWidth=2, size=35, font={'size': 18}, color={"border": "green"})
+            net.add_node(child_lei, label=child_name, shape="ellipse", title=f"Child (LEI: {child_lei})", borderWidth=2, size=35, font={"size": 18}, color={"border": "green"})
             net.add_edge(company_name_id, child_lei, color="green", title=f"Child (LEI: {child_lei})")
 
     # Add previous names
@@ -393,7 +393,7 @@ def create_analysis_graph(df):
         previous_names = df.loc["Previous Names"].iloc[0].split("; ")
         for previous_name in previous_names:
             previous_name_id = f"Previous_Name_{previous_name}"
-            net.add_node(previous_name_id, label=previous_name, shape="box", title="Previous Name", borderWidth=2, size=25, font={'size': 12}, color={"border": "lightgrey"})
+            net.add_node(previous_name_id, label=previous_name, shape="box", title="Previous Name", borderWidth=2, size=25, font={"size": 12}, color={"border": "lightgrey"})
             net.add_edge(company_name_id, previous_name_id, color="lightgrey", title="Previous Name")
 
     # Add industry descriptions
@@ -401,14 +401,14 @@ def create_analysis_graph(df):
         industry_descriptions = df.loc["Industry Descriptions"].iloc[0].split("; ")
         for industry_description in industry_descriptions:
             industry_description_id = f"Industry_Description_{industry_description}"
-            net.add_node(industry_description_id, label=industry_description, shape="dot", title="Industry Description", borderWidth=2, size=15, font={'size': 10}, color={"border": "purple"})
+            net.add_node(industry_description_id, label=industry_description, shape="dot", title="Industry Description", borderWidth=2, size=15, font={"size": 10}, color={"border": "purple"})
             net.add_edge(company_name_id, industry_description_id, color="purple", title="Industry Description")
 
     # Add sanctioned company
     if "Sanctioned Company" in df.index:
         sanctioned_company = df.loc["Sanctioned Company"].iloc[0]
         sanctioned_company_id = f"Sanctioned_Company_{sanctioned_company}"
-        net.add_node(sanctioned_company_id, label=sanctioned_company, shape="box", title="Sanctioned Company", borderWidth=2, size=30, font={'size': 15}, color={"border": "red"})
+        net.add_node(sanctioned_company_id, label=sanctioned_company, shape="box", title="Sanctioned Company", borderWidth=2, size=30, font={"size": 15}, color={"border": "red"})
         net.add_edge(company_name_id, sanctioned_company_id, color="red", title="Sanctioned Company")
 
     # Add officers
@@ -416,7 +416,7 @@ def create_analysis_graph(df):
         officers = df.loc["Officers"].iloc[0].split("; ")
         for officer in officers:
             officer_id = f"Officer_{officer}"
-            net.add_node(officer_id, label=officer, shape="box", title="Officer", borderWidth=2, size=30, font={'size': 15}, color={"border": "pink"})
+            net.add_node(officer_id, label=officer, shape="box", title="Officer", borderWidth=2, size=30, font={"size": 15}, color={"border": "pink"})
             net.add_edge(company_name_id, officer_id, color="pink", title="Officer")
 
     # Add sanctioned officers
@@ -424,7 +424,7 @@ def create_analysis_graph(df):
         sanctioned_officers = df.loc["Sanctioned Officers"].iloc[0].split("; ")
         for sanctioned_officer in sanctioned_officers:
             sanctioned_officer_id = f"Sanctioned_Officer_{sanctioned_officer}"
-            net.add_node(sanctioned_officer_id, label=sanctioned_officer, shape="box", title="Sanctioned Officer", borderWidth=2, size=30, font={'size': 15}, color={"border": "red"})
+            net.add_node(sanctioned_officer_id, label=sanctioned_officer, shape="box", title="Sanctioned Officer", borderWidth=2, size=30, font={"size": 15}, color={"border": "red"})
             net.add_edge(company_name_id, sanctioned_officer_id, color="red", title="Sanctioned Officer")
 
     return net
@@ -534,7 +534,7 @@ def get_sentiment(text):
     Calculate the sentiment score of a given text.
     """
     score = sia.polarity_scores(text)
-    return score['compound'] # Score ranges from -1 (negative) to 1 (positive)
+    return score["compound"] # Score ranges from -1 (negative) to 1 (positive)
 
 def contains_fraud_keywords(text):
     """
@@ -579,7 +579,7 @@ def fetch_adverse_news(query, days=28):
                 st.markdown(
                     f"""
                     <div style="background-color: #f0f2f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-                        <p style="margin: 5px 0;">📰 <b>{article['title']}</b></p>
+                        <p style="margin: 5px 0;">📰 <b>{article["title"]}</b></p>
                         <p style="margin: 5px 0;">
                             <a href="{article_url}" target="_blank" style="color: #0078ff; text-decoration: none;">
                                 🔗 {article_url}
